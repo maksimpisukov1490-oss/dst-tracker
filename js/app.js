@@ -577,7 +577,11 @@
         ? '<image x="' + (s.x - 13) + '" y="' + (-s.y - 13) + '" width="26" height="26" href="' + esc(s.icon) + '"/>'
         : '';
       var glyph = s.lock
-        ? '<text x="' + s.x + '" y="' + (-s.y + 5) + '" text-anchor="middle" class="sknode__lock">🔒</text>'
+        ? '<g class="sknode__lockmark" transform="translate(' + s.x + ',' + (-s.y) + ')">' +
+            '<path d="M-6 -2 v-5 a6 6 0 0 1 12 0 v5"/>' +
+            '<rect x="-8" y="-2" width="16" height="12" rx="2"/>' +
+            '<circle cx="0" cy="4.5" r="1.5" class="sknode__keyhole"/>' +
+          '</g>'
         : (s.icon ? '' : '<text x="' + s.x + '" y="' + (-s.y + 5) + '" text-anchor="middle" class="sknode__q">?</text>');
       return '<g class="' + cls + '" data-skill="' + esc(s.id) + '">' +
         '<title>' + esc(s.title) + '</title>' +
@@ -603,7 +607,7 @@
       '<div class="skilltree__head">' + face +
         '<div class="skilltree__title"><h3>' + esc(tree.name) + '</h3><p>Древо навыков</p></div>' +
         insight +
-        '<div class="skilltree__legend"><span class="is-on">изучено</span><span>не изучено</span><span class="is-lock">закрыто</span></div>' +
+        '<div class="skilltree__legend"><span class="is-on">изучено</span><span>не изучено</span><span class="is-lock">условие</span></div>' +
       '</div>' + xpBlock +
       '<div class="skilltree__canvas" style="--tree-bg:url(\'' + esc(bgPath) + '\')">' +
         '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid meet">' +
@@ -642,10 +646,15 @@
         var parents = (s.connects || []).filter(function (pid) { return list.indexOf(pid) >= 0; });
         av = !!(s.root || parents.length);
       }
-      var status = s.lock ? 'Закрытый путь' : (on ? 'Изучен' : (av ? 'Доступен' : 'Не изучен'));
+      var status = s.lock ? 'Условие открытия' : (on ? 'Изучен' : (av ? 'Доступен' : 'Не изучен'));
       var icon = s.icon
         ? '<img class="skilltree__dicon" src="' + esc(s.icon) + '" alt="">'
-        : '<span class="skilltree__dicon skilltree__dicon--lock">' + (s.lock ? '🔒' : '?') + '</span>';
+        : '<span class="skilltree__dicon skilltree__dicon--lock">' +
+            '<svg class="skilltree__dlock" viewBox="-10 -10 20 20" aria-hidden="true">' +
+              '<path d="M-6 -2 v-5 a6 6 0 0 1 12 0 v5"/>' +
+              '<rect x="-8" y="-2" width="16" height="12" rx="2"/>' +
+              '<circle cx="0" cy="4.5" r="1.5"/>' +
+            '</svg></span>';
       details.innerHTML = icon + '<div class="skilltree__dtext">' +
         '<h4>' + esc(s.title) + '</h4>' +
         '<p class="skilltree__status' + (on ? ' is-on' : (av ? ' is-available' : '')) + '">' + status + '</p>' +

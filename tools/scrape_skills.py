@@ -53,11 +53,55 @@ CHARS = [
 ]
 
 LOCK_RU = {
-    "ALLEGIANCE_LOCK_1_DESC": "Изучите 12 навыков.",
-    "ALLEGIANCE_LOCK_2_DESC": "Найдите и победите Древнего топливопряда.",
-    "ALLEGIANCE_LOCK_3_DESC": "Найдите и победите Небесного защитника.",
-    "ALLEGIANCE_LOCK_4_DESC": "Нет навыков лунной принадлежности.",
-    "ALLEGIANCE_LOCK_5_DESC": "Нет навыков теневой принадлежности.",
+    "ALLEGIANCE_LOCK_2_DESC": "Победите Древнего топливопряда.",
+    "ALLEGIANCE_LOCK_3_DESC": "Победите Небесного защитника.",
+    "ALLEGIANCE_LOCK_4_DESC": "Без лунной принадлежности.",
+    "ALLEGIANCE_LOCK_5_DESC": "Без теневой принадлежности.",
+    "COUNT_LOCK_1_DESC": "Изучите достаточно навыков левой ветки.",
+    "COUNT_LOCK_2_DESC": "Изучите достаточно навыков правой ветки.",
+    "WALTER_AMMO_LOCK_DESC": "Изучите 2 навыка боеприпасов.",
+    "WALTER_AMMO_LUNAR_LOCK_DESC": "Победите Небесного защитника и не имейте навыков теневой принадлежности.",
+    "WALTER_AMMO_SHADOW_LOCK_DESC": "Победите Древнего топливопряда и не имейте навыков лунной принадлежности.",
+    "WALTER_CAMP_LOCK_DESC": "Изучите 3 навыка разведки.",
+    "WALTER_WOBY_LOCK_DESC": "Изучите 2 навыка Воби.",
+    "WALTER_WOBY_LUNAR_LOCK_DESC": "Победите Небесного защитника и не имейте навыков теневой принадлежности.",
+    "WALTER_WOBY_SHADOW_LOCK_DESC": "Победите Древнего топливопряда и не имейте навыков лунной принадлежности.",
+    "WATHGRITHR_ALLEGIANCE_LOCK_1_DESC": "Изучите 12 навыков.",
+    "WATHGRITHR_SONGS_CONTAINER_LOCK_DESC": "Имейте 6 разных боевых песен в инвентаре.",
+    "WATHGRITHR_SONGS_INSTANTSONG_CD_LOCK_DESC": "Используйте боевые стингеры 10 раз.",
+    "WATHGRITHR_SONGS_REVIVEWARRIOR_LOCK_DESC": "Сыграйте на роге бифало.",
+    "WENDY_LUNAR_LOCK_1_DESC": "Победите Небесного защитника.",
+    "WENDY_LUNAR_LOCK_2_DESC": "Не имейте другой принадлежности.",
+    "WENDY_SHADOW_LOCK_1_DESC": "Победите Древнего топливопряда.",
+    "WENDY_SHADOW_LOCK_2_DESC": "Не имейте другой принадлежности.",
+    "WILLOW_ALLEGIANCE_LOCK_1_DESC": "Победите Древнего топливопряда. Не имейте навыков лунной принадлежности.",
+    "WILLOW_ALLEGIANCE_LOCK_2_DESC": "Изучите 6 навыков Берни.",
+    "WILLOW_ALLEGIANCE_LOCK_3_DESC": "Изучите 7 навыков зажигалки.",
+    "WILLOW_ALLEGIANCE_LOCK_4_DESC": "Победите Небесного защитника. Не имейте навыков теневой принадлежности.",
+    "WILLOW_ALLEGIANCE_LOCK_5_DESC": "Изучите 7 навыков зажигалки.",
+    "WILLOW_ALLEGIANCE_LOCK_6_DESC": "Изучите 6 навыков Берни.",
+    "WILLOW_BERNIE_DOUBLE_LOCK_DESC": "Изучите как минимум 8 навыков Берни.",
+    "WILLOW_BERNIE_LOCK_DESC": "Изучите как минимум 4 навыка Берни.",
+    "WILSON_ALLEGIANCE_LOCK_1_DESC": "Изучите 12 навыков.",
+    "WILSON_BEARD_1_LOCK_DESC": "Изучите 3 навыка бороды.",
+    "WILSON_TORCH_1_LOCK_DESC": "Изучите 3 навыка факела.",
+    "WINONA_CHARLIE_2_LOCK_DESC": "Нужен навык «Искатель тени I» и не нужен «Хранитель основателя II».",
+    "WINONA_LOWSHELF_LOCK_DESC": "Изучите 3 навыка на полке ниже, чтобы открыть полку выше.",
+    "WINONA_LUNAR_3_LOCK_DESC": "Нужны навыки «Портативность» и «Г.Э.М.ератор сияния».",
+    "WINONA_MIDSHELF_LOCK_DESC": "Изучите 6 навыков с полок ниже, чтобы открыть полку выше.",
+    "WINONA_PORTABLE_STRUCTURES_LOCK_DESC": "Нужен навык «Портативность» и доступ к этой полке.",
+    "WINONA_SHADOW_3_LOCK_DESC": "Нужны навыки «Портативность» и «Генератор чистого ужаса».",
+    "WINONA_WAGSTAFF_2_LOCK_DESC": "Нужен навык «Хранитель основателя I» и не нужен «Искатель тени II».",
+    "WOODIE_ALLEGIANCE_LOCK_1_DESC": "Изучите 12 навыков.",
+    "WOODIE_CURSE_BEAVER_LOCK_DESC": "Полностью освоить можно только одну форму. Выбирайте с умом.",
+    "WOODIE_CURSE_GOOSE_LOCK_DESC": "Полностью освоить можно только одну форму. Выбирайте с умом.",
+    "WOODIE_CURSE_MASTER_LOCK_DESC": "Изучите 6 навыков проклятия.",
+    "WOODIE_CURSE_MOOSE_LOCK_DESC": "Полностью освоить можно только одну форму. Выбирайте с умом.",
+    "WORTOX_NAUGHTY_LOCK_DESC": "Нужен навык ниже и 5 навыков «озорной» и/или «нейтральной» ветки.",
+    "WORTOX_NICE_LOCK_DESC": "Нужен навык ниже и 5 навыков «доброй» и/или «нейтральной» ветки.",
+    "WURT_ALLEGIANCE_LOCK_1_DESC": "Изучите 12 навыков.",
+    "WX78_LUNAR_ALLEGIANCE_LOCK_1_DESC": "Победите Небесного защитника. Без теневой принадлежности. Умейте создать запасной корпус.",
+    "WX78_SHADOW_ALLEGIANCE_LOCK_1_DESC": "Победите Древнего топливопряда. Без лунной принадлежности. Умейте создать запасной корпус.",
 }
 
 
@@ -194,8 +238,9 @@ def main() -> int:
             icon_url = ""
             icon_path = ""
             if s.get("lock"):
-                title = "Закрытый путь"
-                desc = LOCK_RU.get(s.get("desc") or "", "Откроется по мере изучения навыков.")
+                key = s.get("desc") or ""
+                title = LOCK_RU.get(key) or strings.get(key, "Этот путь нельзя изучить.")
+                desc = ""
                 cond = ""
             else:
                 title = (ru or {}).get("ru") or title_en or s["name"]

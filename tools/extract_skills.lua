@@ -19,7 +19,15 @@ end
 local function proxy()
     return setmetatable({}, { __index = function(_, k) return k end })
 end
-STRINGS = { SKILLTREE = setmetatable({}, { __index = function() return proxy() end }) }
+local function strproxy()
+    return setmetatable({}, { __index = function(_, k)
+        if type(k) == "string" and (k:match("_TITLE$") or k:match("_DESC$")) then
+            return k
+        end
+        return strproxy()
+    end })
+end
+STRINGS = { SKILLTREE = strproxy() }
 local function deepproxy()
     return setmetatable({}, { __index = function(t, k)
         local v = deepproxy()
@@ -29,27 +37,29 @@ local function deepproxy()
 end
 TUNING = deepproxy()
 local function noop() return 0 end
-local function lockfn(extra)
-    return {
-        desc = "LOCK",
-        root = false,
-        group = extra and extra.group or "allegiance",
-        tags = { "allegiance", "lock" },
-        lock = true,
-        pos = extra and extra.pos,
-        connects = extra and extra.connects,
-    }
+local function make_lock(desc)
+    return function(extra, not_root)
+        return {
+            desc = desc,
+            root = not not_root,
+            group = extra and extra.group or "allegiance",
+            tags = { "allegiance", "lock" },
+            lock = true,
+            pos = extra and extra.pos,
+            connects = extra and extra.connects,
+        }
+    end
 end
 local FN = {
     CountSkills = noop,
     CountTags = noop,
     HasTag = function() return false end,
     SkillHasTags = function() return false end,
-    MakeFuelWeaverLock = lockfn,
-    MakeNoShadowLock = lockfn,
-    MakeCelestialChampionLock = lockfn,
-    MakeNoLunarLock = lockfn,
-    MakePurelyVisualLock = lockfn,
+    MakeFuelWeaverLock = make_lock("ALLEGIANCE_LOCK_2_DESC"),
+    MakeNoShadowLock = make_lock("ALLEGIANCE_LOCK_5_DESC"),
+    MakeCelestialChampionLock = make_lock("ALLEGIANCE_LOCK_3_DESC"),
+    MakeNoLunarLock = make_lock("ALLEGIANCE_LOCK_4_DESC"),
+    MakePurelyVisualLock = make_lock("LOCK"),
 }
 
 local function esc(s)

@@ -903,3 +903,26 @@ body{
 }
 .colophon__version{ opacity:.8; letter-spacing:.5px; }
 .start__version{ margin:22px 0 0; text-align:center; font-size:13px; color:var(--ink-2); }
+
+/* замки путей: свой SVG-замочек в стиле компендиума */
+.sknode__lockmark path,
+.sknode__lockmark rect{
+  fill:none; stroke:#c9a85a; stroke-width:1.6;
+  stroke-linejoin:round; stroke-linecap:round;
+}
+.sknode__lockmark rect{ fill:rgba(201,168,90,.14); }
+.sknode__keyhole{ fill:#c9a85a; stroke:none; }
+.sknode.is-lock .sknode__lockmark path,
+.sknode.is-lock .sknode__lockmark rect{ stroke:#9a8259; }
+.sknode.is-lock .sknode__keyhole{ fill:#9a8259; }
+.sknode.is-selected .sknode__lockmark path,
+.sknode.is-selected .sknode__lockmark rect{ stroke:#fff0c0; }
+.sknode.is-selected .sknode__keyhole{ fill:#fff0c0; }
+.skilltree__dlock{ width:26px; height:26px; }
+.skilltree__dlock path,
+.skilltree__dlock rect{
+  fill:none; stroke:#8a6a1f; stroke-width:1.8;
+  stroke-linejoin:round; stroke-linecap:round;
+}
+.skilltree__dlock rect{ fill:rgba(201,168,90,.18); }
+.skilltree__dlock circle{ fill:#8a6a1f; }
