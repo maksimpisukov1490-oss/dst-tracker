@@ -455,8 +455,20 @@
     });
   }
 
+  function loreExcerpt(b) {
+    var t = (b.lore || '').trim();
+    if (!t) return '';
+    var m = t.match(/^[^.!?]+[.!?]/);
+    var s = m ? m[0] : t;
+    if (s.length > 118) {
+      s = s.slice(0, 115).replace(/\s+\S*$/, '') + '…';
+    }
+    return s;
+  }
+
   function cardHtml(b) {
     var k = kill(b.slug);
+    var lore = loreExcerpt(b);
     var killed = k.count > 0;
     var locked = !killed && state.silhouettes;
     var img = art(b);
@@ -471,6 +483,10 @@
       '<span class="card__art">' +
       (img ? '<img src="' + img + '" alt="' + esc(b.name_ru) + '" loading="lazy">'
         : '<span class="card__noart">?</span>') +
+      (lore ? '<span class="card__lore">' +
+        '<span class="card__lore-label">' + esc(b.name_en || 'Компендиум') + '</span>' +
+        '<span class="card__lore-text">' + esc(lore) + '</span>' +
+      '</span>' : '') +
       '</span>' +
       '<span class="card__plate">' +
       '<span class="card__name">' + esc(b.name_ru) + '</span>' +
