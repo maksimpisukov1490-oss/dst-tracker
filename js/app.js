@@ -492,6 +492,22 @@
     els.empty.hidden = list.length > 0;
   }
 
+  var SKILL_THRESHOLDS = [3, 3, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5];
+
+  function xpProgress(xp) {
+    var total = 0;
+    for (var i = 0; i < SKILL_THRESHOLDS.length; i++) total += SKILL_THRESHOLDS[i];
+    if (xp >= total) return 100;
+    var prev = 0, next = total, cum = 0;
+    for (var j = 0; j < SKILL_THRESHOLDS.length; j++) {
+      cum += SKILL_THRESHOLDS[j];
+      if (xp < cum) { next = cum; break; }
+      prev = cum;
+    }
+    if (next <= prev) return 100;
+    return Math.max(0, Math.min(100, Math.round((xp - prev) * 100 / (next - prev))));
+  }
+
   function renderSkills() {
     var run = currentRun();
     var tree = skillTreeForCurrent();
@@ -509,6 +525,13 @@
 
     var byId = {};
     tree.skills.forEach(function (s) { byId[s.id] = s; });
+
+    var available = {};
+    tree.skills.forEach(function (s) {
+      if (s.lock || learned[s.id]) return;
+      var parents = (s.connects || []).filter(function (id) { return learned[id]; });
+      if (s.root || parents.length) available[s.id] = true;
+    });
 
     var pad = 44;
     var minX = tree.bounds.minX, maxX = tree.bounds.maxX;
@@ -548,32 +571,46 @@
 
     var nodes = tree.skills.map(function (s) {
       var on = !!learned[s.id];
-      var cls = 'sknode' + (on ? ' is-on' : '') + (s.lock ? ' is-lock' : '');
+      var av = !!available[s.id];
+      var cls = 'sknode' + (on ? ' is-on' : '') + (av ? ' is-available' : '') + (s.lock ? ' is-lock' : '');
       var icon = s.icon
-        ? '<image x="' + (s.x - 15) + '" y="' + (-s.y - 15) + '" width="30" height="30" href="' + esc(s.icon) + '"/>'
+        ? '<image x="' + (s.x - 13) + '" y="' + (-s.y - 13) + '" width="26" height="26" href="' + esc(s.icon) + '"/>'
         : '';
       var glyph = s.lock
-        ? '<text x="' + s.x + '" y="' + (-s.y + 6) + '" text-anchor="middle" class="sknode__lock">🔒</text>'
-        : (s.icon ? '' : '<text x="' + s.x + '" y="' + (-s.y + 6) + '" text-anchor="middle" class="sknode__q">?</text>');
+        ? '<text x="' + s.x + '" y="' + (-s.y + 5) + '" text-anchor="middle" class="sknode__lock">🔒</text>'
+        : (s.icon ? '' : '<text x="' + s.x + '" y="' + (-s.y + 5) + '" text-anchor="middle" class="sknode__q">?</text>');
       return '<g class="' + cls + '" data-skill="' + esc(s.id) + '">' +
-        '<circle cx="' + s.x + '" cy="' + (-s.y) + '" r="20"/>' + icon + glyph + '</g>';
+        '<title>' + esc(s.title) + '</title>' +
+        '<circle class="sknode__ring" cx="' + s.x + '" cy="' + (-s.y) + '" r="20"/>' +
+        '<circle class="sknode__inner" cx="' + s.x + '" cy="' + (-s.y) + '" r="15"/>' +
+        icon + glyph + '</g>';
     }).join('');
 
-    var meta = skillsState
-      ? 'Озарение: <b>' + (skillsState.points || 0) + '</b> · Опыт: <b>' + (skillsState.xp || 0) + '</b>'
-      : 'Подключи игру, чтобы увидеть изученные навыки';
+    var points = skillsState ? (skillsState.points || 0) : 0;
+    var xp = skillsState ? (skillsState.xp || 0) : 0;
+    var xpPct = xpProgress(xp);
+    var bgPath = 'assets/skills/bg/' + (run.char || '') + '.png';
+    var insight = skillsState
+      ? '<div class="skilltree__insight"><span class="skilltree__star">✦</span><b>' + points + '</b><span>озарения</span></div>'
+      : '<div class="skilltree__insight skilltree__insight--off">Подключи игру</div>';
+    var xpBlock = skillsState
+      ? '<div class="skilltree__xp"><div class="skilltree__xpbar"><i style="width:' + xpPct + '%"></i></div>' +
+        '<span class="skilltree__xptext">Опыт: <b>' + xp + '</b></span></div>'
+      : '';
     var face = tree.head ? '<img class="skilltree__face" src="' + esc(tree.head) + '" alt="">' : '';
 
     els.grid.innerHTML = '<div class="skilltree">' +
       '<div class="skilltree__head">' + face +
-        '<div><h3>' + esc(tree.name) + '</h3><p>' + meta + '</p></div>' +
+        '<div class="skilltree__title"><h3>' + esc(tree.name) + '</h3><p>Древо навыков</p></div>' +
+        insight +
         '<div class="skilltree__legend"><span class="is-on">изучено</span><span>не изучено</span><span class="is-lock">закрыто</span></div>' +
-      '</div>' +
-      '<div class="skilltree__canvas"><svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid meet">' +
-        '<g class="skilltree__groups">' + groupLabels + '</g>' +
-        '<g class="skilltree__lines">' + lines.join('') + '</g>' +
-        '<g class="skilltree__nodes">' + nodes + '</g>' +
-      '</svg></div>' +
+      '</div>' + xpBlock +
+      '<div class="skilltree__canvas" style="--tree-bg:url(\'' + esc(bgPath) + '\')">' +
+        '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid meet">' +
+          '<g class="skilltree__groups">' + groupLabels + '</g>' +
+          '<g class="skilltree__lines">' + lines.join('') + '</g>' +
+          '<g class="skilltree__nodes">' + nodes + '</g>' +
+        '</svg></div>' +
       '<div class="skilltree__details" id="skill-details">Нажми на навык, чтобы прочитать описание.</div>' +
       '</div>';
 
@@ -592,13 +629,29 @@
       var s = null;
       tree.skills.forEach(function (x) { if (x.id === id) s = x; });
       if (!s) return;
+
+      var prev = box.querySelector('.sknode.is-selected');
+      if (prev) prev.classList.remove('is-selected');
+      g.classList.add('is-selected');
+
       var run = currentRun();
-      var on = !!(run && run.skills && (run.skills.list || []).indexOf(s.id) >= 0);
-      var status = s.lock ? 'Закрытый путь' : (on ? 'Изучен' : 'Не изучен');
-      details.innerHTML = '<h4>' + esc(s.title) + '</h4>' +
-        '<p class="skilltree__status' + (on ? ' is-on' : '') + '">' + status + '</p>' +
+      var list = (run && run.skills && run.skills.list) || [];
+      var on = list.indexOf(s.id) >= 0;
+      var av = false;
+      if (!s.lock && !on) {
+        var parents = (s.connects || []).filter(function (pid) { return list.indexOf(pid) >= 0; });
+        av = !!(s.root || parents.length);
+      }
+      var status = s.lock ? 'Закрытый путь' : (on ? 'Изучен' : (av ? 'Доступен' : 'Не изучен'));
+      var icon = s.icon
+        ? '<img class="skilltree__dicon" src="' + esc(s.icon) + '" alt="">'
+        : '<span class="skilltree__dicon skilltree__dicon--lock">' + (s.lock ? '🔒' : '?') + '</span>';
+      details.innerHTML = icon + '<div class="skilltree__dtext">' +
+        '<h4>' + esc(s.title) + '</h4>' +
+        '<p class="skilltree__status' + (on ? ' is-on' : (av ? ' is-available' : '')) + '">' + status + '</p>' +
         (s.desc ? '<p>' + esc(s.desc) + '</p>' : '') +
-        (s.cond && s.cond !== '-' ? '<p class="skilltree__cond">Условие: ' + esc(s.cond) + '</p>' : '');
+        (s.cond && s.cond !== '-' ? '<p class="skilltree__cond">Условие: ' + esc(s.cond) + '</p>' : '') +
+        '</div>';
     });
   }
 

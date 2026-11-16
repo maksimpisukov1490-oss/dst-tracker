@@ -1,0 +1,62 @@
+{
+  "wilson": {
+    "w": 624,
+    "h": 384,
+    "file": "assets/skills/bg/wilson.png"
+  },
+  "wormwood": {
+    "w": 624,
+    "h": 384,
+    "file": "assets/skills/bg/wormwood.png"
+  },
+  "woodie": {
+    "w": 624,
+    "h": 384,
+    "file": "assets/skills/bg/woodie.png"
+  },
+  "wolfgang": {
+    "w": 624,
+    "h": 384,
+    "file": "assets/skills/bg/wolfgang.png"
+  },
+  "wortox": {
+    "w": 624,
+    "h": 384,
+    "file": "assets/skills/bg/wortox.png"
+  },
+  "walter": {
+    "w": 624,
+    "h": 384,
+    "file": "assets/skills/bg/walter.png"
+  },
+  "wigfrid": {
+    "w": 624,
+    "h": 384,
+    "file": "assets/skills/bg/wigfrid.png"
+  },
+  "wendy": {
+    "w": 624,
+    "h": 384,
+    "file": "assets/skills/bg/wendy.png"
+  },
+  "willow": {
+    "w": 624,
+    "h": 384,
+    "file": "assets/skills/bg/willow.png"
+  },
+  "wurt": {
+    "w": 624,
+    "h": 384,
+    "file": "assets/skills/bg/wurt.png"
+  },
+  "winona": {
+    "w": 624,
+    "h": 384,
+    "file": "assets/skills/bg/winona.png"
+  },
+  "wx78": {
+    "w": 624,
+    "h": 384,
+    "file": "assets/skills/bg/wx78.png"
+  }
+}

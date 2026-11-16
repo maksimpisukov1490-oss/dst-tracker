@@ -1,7 +1,7 @@
 name = "DST Compendium Sync"
 description = "Серверный мост для «Компендиума выжившего»: пишет убийства боссов в JSON-файл, который читает tools/bridge.py.\n\nМод только серверный: клиентам ничего ставить не нужно."
 author = "dst-tracker"
-version = "1.0.0"
+version = "1.1.0"
 
 api_version = 10
 priority = 0
