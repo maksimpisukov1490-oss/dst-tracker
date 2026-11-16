@@ -592,8 +592,6 @@
     var points = skillsState ? (skillsState.points || 0) : 0;
     var xp = skillsState ? (skillsState.xp || 0) : 0;
     var xpPct = xpProgress(xp);
-    var bgPath = 'assets/skills/bg/' + (run.char || '') + '.png';
-    var bgUrl = new URL(bgPath, document.baseURI).href;
     var insight = skillsState
       ? '<div class="skilltree__insight"><span class="skilltree__star">✦</span><b>' + points + '</b><span>озарения</span></div>'
       : '<div class="skilltree__insight skilltree__insight--off">Подключи игру</div>';
@@ -618,7 +616,7 @@
         insight +
         '<div class="skilltree__legend"><span class="is-on">изучено</span><span>не изучено</span><span class="is-lock">условие</span></div>' +
       '</div>' + xpBlock +
-      '<div class="skilltree__canvas" style="--tree-bg:url(\'' + esc(bgUrl) + '\')">' +
+      '<div class="skilltree__canvas">' +
         '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid meet">' +
           '<g class="skilltree__groups">' + groupLabels + '</g>' +
           '<g class="skilltree__lines">' + lines.join('') + '</g>' +
