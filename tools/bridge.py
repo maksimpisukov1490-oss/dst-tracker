@@ -331,9 +331,12 @@ def game_process_running() -> bool | None:
             except OSError:
                 pass
             if raw:
-                exe = raw.split(b"\0", 1)[0].decode("utf-8", "ignore")
-                if "dontstarve" in os.path.basename(exe).lower():
-                    return True
+                for part in raw.split(b"\0"):
+                    if not part:
+                        continue
+                    name = part.replace(b"\\", b"/").split(b"/")[-1].decode("utf-8", "ignore").lower()
+                    if name.startswith("dontstarve"):
+                        return True
                 continue
             try:
                 comm = Path(f"/proc/{pid}/comm").read_text(encoding="utf-8", errors="ignore")
