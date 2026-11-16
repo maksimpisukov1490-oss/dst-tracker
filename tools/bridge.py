@@ -34,6 +34,12 @@ from pathlib import Path
 
 APP = "dst-compendium"
 VERSION = 1
+# Данные мода обновляются heartbeat-ом раз в 30 секунд. Если процесс игры
+# не найден, даём короткий запас, чтобы не отвалиться между записями.
+ONLINE_GRACE = 45
+# Если процесс игры есть, но мод давно не писал (пауза/меню) — не считаем
+# данные живыми дольше пяти минут.
+ONLINE_MAX_AGE = 300
 DEFAULT_PORT = 8787
 DEFAULT_HOST = "127.0.0.1"
 STEAM_ROOTS = [
@@ -308,6 +314,38 @@ def _zip_groups(override: str = "") -> list[dict]:
     return list(groups.values())
 
 
+def game_process_running() -> bool | None:
+    """Ищет процесс DST (в том числе под Proton) в /proc.
+
+    None — определить нельзя (не Linux), True/False — результат проверки.
+    """
+    if not os.path.isdir("/proc"):
+        return None
+    try:
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
+                continue
+            raw = b""
+            try:
+                raw = Path(f"/proc/{pid}/cmdline").read_bytes()
+            except OSError:
+                pass
+            if raw:
+                exe = raw.split(b"\0", 1)[0].decode("utf-8", "ignore")
+                if "dontstarve" in os.path.basename(exe).lower():
+                    return True
+                continue
+            try:
+                comm = Path(f"/proc/{pid}/comm").read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            if "dontstarve" in comm.lower():
+                return True
+    except OSError:
+        return None
+    return False
+
+
 def load_state(override: str = "") -> dict:
     candidates = base_candidates(override)
     groups = [_read_base(base) for base in candidates]
@@ -328,6 +366,8 @@ def load_state(override: str = "") -> dict:
     latest = max(records, key=lambda r: int(r.get("updated_at") or 0))
     updated_at = int(latest.get("updated_at") or 0)
     age = max(0, int(time.time()) - updated_at)
+    running = game_process_running()
+    online = (running is True and age <= ONLINE_MAX_AGE) or (age <= ONLINE_GRACE)
 
     marks = {}
     for rec in records:
@@ -359,6 +399,8 @@ def load_state(override: str = "") -> dict:
         "updated_at": updated_at,
         "age": age,
         "stale": age > 120,
+        "online": online,
+        "running": running,
         "base": str(chosen["base"]),
         "world": latest.get("world") or {},
         "skills": skills,
@@ -415,6 +457,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {
                 "ok": True,
                 "connected": state.get("connected", False),
+                "online": state.get("online", False),
+                "running": state.get("running"),
                 "base": state.get("base"),
                 "age": state.get("age"),
                 "shards": state.get("shards", []),

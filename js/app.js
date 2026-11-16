@@ -1237,11 +1237,13 @@
       '<p class="start__version">Компендиум выжившего &middot; v' + esc(APP_VERSION) + '</p>';
   }
 
-  function createRun(name, char) {
+  function createRun(name, char, activate) {
     var r = newRun(name, char);
     state.runs.push(r);
-    state.currentRunId = r.id;
-    bindRun();
+    if (activate !== false) {
+      state.currentRunId = r.id;
+      bindRun();
+    }
     persist();
     return r;
   }
@@ -1521,10 +1523,10 @@
     });
   }
 
-  function addKillCount(slug, n, date, day) {
-    if (n <= 0) return;
-    var cur = state.kills[slug];
-    if (!cur) cur = state.kills[slug] = { count: 0, date: '', day: 0, note: '' };
+  function addKillCount(run, slug, n, date, day) {
+    if (!run || n <= 0) return;
+    var cur = run.kills[slug];
+    if (!cur) cur = run.kills[slug] = { count: 0, date: '', day: 0, note: '' };
     cur.count = (cur.count || 0) + n;
     if (date) cur.date = date;
     if (day) cur.day = day;
@@ -1535,8 +1537,7 @@
     return false;
   }
 
-  function mergeSkills(data) {
-    var run = currentRun();
+  function mergeSkills(data, run) {
     if (!run || !data || !data.skills || !data.skills.char) return false;
     var raw = data.skills.char;
     var siteKey = CHAR_ALIASES[raw] || raw;
@@ -1553,8 +1554,7 @@
     return true;
   }
 
-  function mergeRetro(data) {
-    var run = currentRun();
+  function mergeRetro(data, run) {
     if (!run) return 0;
     if (!run.retroApplied || typeof run.retroApplied !== 'object') run.retroApplied = {};
     var applied = run.retroApplied;
@@ -1568,8 +1568,8 @@
       var prev = parseInt(applied[slug], 10) || 0;
       if (n <= prev) return;
       applied[slug] = n;
-      var cur = state.kills[slug];
-      if (!cur) cur = state.kills[slug] = { count: 0, date: '', day: 0, note: '' };
+      var cur = run.kills[slug];
+      if (!cur) cur = run.kills[slug] = { count: 0, date: '', day: 0, note: '' };
       if ((cur.count || 0) < n) {
         cur.count = n;
         if (!cur.note) cur.note = 'Восстановлено по состоянию мира';
@@ -1580,7 +1580,7 @@
     return count;
   }
 
-  function mergeSync(data) {    var run = currentRun();
+  function mergeSync(data, run) {
     if (!run) return { added: 0, changed: false };
     if (!run.sync || typeof run.sync !== 'object') run.sync = {};
     if (!run.sync.shards || typeof run.sync.shards !== 'object') run.sync.shards = {};
@@ -1617,7 +1617,7 @@
         Object.keys(counts).forEach(function (slug) {
           var n = counts[slug];
           if (n > 0) {
-            addKillCount(slug, n, (kills[slug] || {}).date, (kills[slug] || {}).day);
+            addKillCount(run, slug, n, (kills[slug] || {}).date, (kills[slug] || {}).day);
             added += n;
           }
         });
@@ -1631,7 +1631,7 @@
         var n = counts[slug];
         var prev = parseInt(st.seen[slug], 10) || 0;
         if (n > prev) {
-          addKillCount(slug, n - prev, (kills[slug] || {}).date, (kills[slug] || {}).day);
+          addKillCount(run, slug, n - prev, (kills[slug] || {}).date, (kills[slug] || {}).day);
           added += n - prev;
         }
         if (n !== prev) changed = true;
@@ -1640,7 +1640,7 @@
     });
 
     var sp = (data.kills || {}).shadow_pieces;
-    if (sp && sp.levels) {
+    if (run === currentRun() && sp && sp.levels) {
       var pick = state.variantPick.shadow_pieces || {};
       ['knight', 'bishop', 'rook'].forEach(function (piece) {
         var lv = parseInt(sp.levels[piece], 10);
@@ -1651,10 +1651,11 @@
 
     var addedMarks = 0;
     var marks = (data && data.marks) || {};
+    if (!run.marks || typeof run.marks !== 'object') run.marks = {};
     Object.keys(marks).forEach(function (id) {
       if (!marks[id] || !MILESTONE_IDS[id]) return;
-      if (!state.marks[id]) {
-        state.marks[id] = true;
+      if (!run.marks[id]) {
+        run.marks[id] = true;
         addedMarks++;
       }
     });
@@ -1669,48 +1670,58 @@
     var ch = w.char ? charByKey(w.char) : null;
     var char = ch ? ch.key : '';
     var player = (w.player && String(w.player).trim()) || '';
-    var run = currentRun();
+    var cur = currentRun();
     var changed = false;
+    var target = null;
 
-    // Ручной забег не переименовываем и не подменяем.
-    if (run && !run.auto) {
-      return { run: run, changed: false };
+    // Ищем забег, который принадлежит этому миру игры.
+    if (worldName) {
+      state.runs.forEach(function (r) {
+        if (r.auto && r.worldName === worldName) target = r;
+      });
+    }
+    if (!target && cur && cur.auto && (!worldName || !cur.worldName)) {
+      target = cur;
     }
 
-    if (run && run.auto) {
-      // Мир сменился — переключаемся на его забег или создаём новый.
-      if (run.worldName && worldName && run.worldName !== worldName) {
-        var existing = null;
-        state.runs.forEach(function (r) {
-          if (r.auto && r.worldName === worldName) existing = r;
-        });
-        if (existing) {
-          state.currentRunId = existing.id;
-          bindRun();
-          run = existing;
-          changed = true;
-        } else {
-          run = createRun(worldName, char);
-          run.auto = true;
-          run.worldName = worldName;
-          run.player = player;
-          return { run: run, changed: true };
-        }
-      }
-      if (worldName && run.name !== worldName) { run.name = worldName; changed = true; }
-      if (char && run.char !== char) { run.char = char; changed = true; }
-      if (player && run.player !== player) { run.player = player; changed = true; }
-      if (worldName && run.worldName !== worldName) { run.worldName = worldName; changed = true; }
-      return { run: run, changed: changed };
+    // Нет забега мира — создаём его. Ручной забег при этом не трогаем
+    // и не переключаем: игра пишет только в свой автоматический забег.
+    if (!target) {
+      target = createRun(worldName || 'Забег из игры', char, false);
+      target.auto = true;
+      target.worldName = worldName;
+      target.player = player;
+      changed = true;
     }
 
-    // Забега ещё нет: создаём его из данных мира.
-    run = createRun(worldName || 'Забег из игры', char);
-    run.auto = true;
-    run.worldName = worldName;
-    run.player = player;
-    hideStart();
-    return { run: run, changed: true };
+    if (worldName && target.name !== worldName) { target.name = worldName; changed = true; }
+    if (char && target.char !== char) { target.char = char; changed = true; }
+    if (player && target.player !== player) { target.player = player; changed = true; }
+    if (worldName && target.worldName !== worldName) { target.worldName = worldName; changed = true; }
+
+    if (!cur) {
+      state.currentRunId = target.id;
+      bindRun();
+      hideStart();
+      changed = true;
+    } else if (cur.auto && cur !== target) {
+      // Открыт автоматический забег другого мира — переключаемся на нужный.
+      state.currentRunId = target.id;
+      bindRun();
+      changed = true;
+    }
+
+    return { run: target, changed: changed, current: target === currentRun() };
+  }
+
+  function gameOnline(data) {
+    if (!data || !data.connected) return false;
+    if (data.online === false) return false;
+    if (data.online === true) return true;
+    // Старый мост без поля online: смотрим на возраст данных.
+    if (data.stale === true) return false;
+    var age = parseInt(data.age, 10);
+    return !isFinite(age) || age <= 120;
   }
 
   function applySync(data, silent) {
@@ -1718,37 +1729,50 @@
       if (!silent) toast('Мост работает, но мод ещё не записал прогресс');
       return null;
     }
+    if (!gameOnline(data)) {
+      if (!silent) toast('Игра не запущена — данные устарели');
+      return null;
+    }
+
     var wr = ensureWorldRun(data);
+    var run = wr.run;
+    if (!run) return null;
     var runChanged = wr.changed;
 
     // Текущий день мира — отдельный счётчик забега.
     var worldDay = parseInt((data.world || {}).day, 10) || 0;
-    if (wr.run && worldDay && wr.run.day !== worldDay) {
-      wr.run.day = worldDay;
+    if (worldDay && run.day !== worldDay) {
+      run.day = worldDay;
+      runChanged = true;
       save();
-      updateRunBadge();
+      if (wr.current) updateRunBadge();
     }
 
-    var res = mergeSync(data);
-    var retroCount = mergeRetro(data);
-    var skillsChanged = mergeSkills(data);
+    var res = mergeSync(data, run);
+    var retroCount = mergeRetro(data, run);
+    var skillsChanged = mergeSkills(data, run);
     if (res.changed || runChanged || res.marks || retroCount || skillsChanged) save();
-    if (res.added || runChanged || res.marks || retroCount || skillsChanged) {
+    if (wr.current && (res.added || runChanged || res.marks || retroCount || skillsChanged)) {
       renderAll();
       updateRunBadge();
     }
+
     var parts = [];
     if (res.added) parts.push('побед: ' + res.added);
     if (res.marks) parts.push('отметок: ' + res.marks);
     if (retroCount) parts.push('из прошлого: ' + retroCount);
-    if (parts.length) {
+    if (wr.current && parts.length) {
       toast('Из игры — ' + parts.join(', '));
-    } else if (res.baseline) {
+    } else if (wr.current && res.baseline) {
       toast('Игра на связи. Новые победы начнут учитываться с этого момента');
-    } else if (!silent) {
+    } else if (!silent && wr.current) {
       toast('Игра на связи, новых побед нет');
     }
     res.retro = retroCount;
+    res.run = run;
+    res.current = wr.current;
+    state.sync.targetName = run.name;
+    state.sync.targetCurrent = wr.current;
     return res;
   }
 
@@ -1766,6 +1790,9 @@
       title += ' · день ' + (state.sync.world.day || '?');
       var players = state.sync.world.players || [];
       if (players.length) title += ' · ' + players.join(', ');
+    }
+    if (state.sync.on && state.sync.targetName && !state.sync.targetCurrent) {
+      title += ' · забег «' + state.sync.targetName + '»';
     }
     b.title = title;
   }
@@ -1789,6 +1816,10 @@
       state.sync.fails = 0;
       if (!data.connected) {
         stopSync('Мост работает, но мод ещё не записал прогресс');
+        return;
+      }
+      if (!gameOnline(data)) {
+        stopSync('Игра не запущена — синхронизация остановлена');
         return;
       }
       applySync(data, true);
@@ -1818,6 +1849,12 @@
         toast('Мост работает, но файла мода нет — включи мод и зайди в мир');
         return;
       }
+      if (!gameOnline(data)) {
+        state.sync.fails = 1;
+        renderSyncBtn();
+        toast('Игра не запущена или данные устарели — запусти игру и зайди в мир');
+        return;
+      }
       var res = applySync(data, false);
       if (!res) return;
       state.sync.on = true;
@@ -1828,7 +1865,11 @@
       if (res.added) extra.push('побед: ' + res.added);
       if (res.marks) extra.push('отметок: ' + res.marks);
       if (res.retro) extra.push('из прошлого: ' + res.retro);
-      toast('Игра на связи' + (w.day ? ' · день ' + w.day : '') +
+      var where = '';
+      if (res.run && !res.current) {
+        where = ' · данные идут в забег «' + res.run.name + '»';
+      }
+      toast('Игра на связи' + (w.day ? ' · день ' + w.day : '') + where +
         (extra.length ? ' · ' + extra.join(', ')
           : (res.baseline ? ' · новые победы — с этого момента' : '')));
     }).catch(function () {
