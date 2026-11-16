@@ -23,6 +23,11 @@ OUT = ROOT / "assets" / "skills" / "bg"
 ATLASES = ["skilltree2", "skilltree3", "skilltree4", "skilltree5", "skilltree6"]
 SITE = {"wathgrithr": "wigfrid", "waxwell": "maxwell"}
 
+# Игровые фоны — это белые маски, которые игра тонирует сама.
+# В интерфейсе прокачки используется золотой тинт (UICOLOURS.GOLD) с alpha 0.6.
+TINT = (202, 174, 118)
+TINT_ALPHA = 0.55
+
 
 def parse_ktex(data: bytes) -> tuple[Image.Image, int, int]:
     magic, header = struct.unpack_from("<4sI", data, 0)
@@ -72,8 +77,13 @@ def main() -> int:
             char = name.replace("_background.tex", "")
             site = SITE.get(char, char)
             crop = im.crop((x1, y1, x2, y2))
+            # маска белая: берём её альфу и красим в золото, иначе на тёмном
+            # полотне видны белые полосы
+            alpha = crop.getchannel("A").point(lambda v: int(v * TINT_ALPHA))
+            tinted = Image.new("RGBA", crop.size, TINT + (0,))
+            tinted.putalpha(alpha)
             dest = OUT / f"{site}.png"
-            crop.save(dest)
+            tinted.save(dest)
             made[site] = {"w": crop.width, "h": crop.height, "file": str(dest.relative_to(ROOT))}
             print(f"{atlas}: {char} -> {site} {crop.width}x{crop.height}")
     (OUT / "index.json").write_text(json.dumps(made, ensure_ascii=False, indent=2), encoding="utf-8")
