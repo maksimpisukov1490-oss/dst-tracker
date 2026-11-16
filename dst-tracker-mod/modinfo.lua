@@ -1,7 +1,7 @@
 name = "DST Compendium Sync"
-description = "Серверный мост для «Компендиума выжившего»: пишет убийства боссов в JSON-файл, который читает tools/bridge.py.\n\nМод только серверный: клиентам ничего ставить не нужно."
+description = "Мост для «Компендиума выжившего»: пишет убийства боссов в JSON-файл для tools/bridge.py и добавляет в меню паузы экран прогресса.\n\nДля синхронизации достаточно сервера; кнопка в паузе появляется у тех, у кого стоит мод (включая хоста)."
 author = "dst-tracker"
-version = "1.1.0"
+version = "1.2.0"
 
 api_version = 10
 priority = 0
@@ -12,7 +12,7 @@ reign_of_giants_compatible = false
 
 all_clients_require_mod = false
 client_only_mod = false
-server_only_mod = true
+server_only_mod = false
 
 server_filter_tags = { "dst-tracker", "compendium" }
 

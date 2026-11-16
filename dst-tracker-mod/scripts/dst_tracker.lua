@@ -9,7 +9,7 @@ local G = GLOBAL
 local pcall, tonumber, next = G.pcall, G.tonumber, G.next
 local setmetatable, getmetatable, assert = G.setmetatable, G.getmetatable, G.assert
 
-local MOD_VERSION = "1.1.0"
+local MOD_VERSION = "1.2.0"
 
 -- Идентификатор запуска сервера: сайт по нему понимает, что счётчики
 -- начались заново, и не путает новую сессию со старой.
@@ -770,6 +770,9 @@ local MARKS = {
     { id = "glommer", prefab = "glommer", item = "glommerflower" },
 }
 
+Tracker.MARKS = MARKS
+Tracker.MARK_COUNT = #MARKS
+
 function Tracker.Mark(id)
     if S.marks[id] then
         return false
@@ -887,6 +890,50 @@ local function build_payload()
         marks = marks,
         retro = retro,
     })
+end
+
+-- Снимок для экрана прогресса в игре (запрашивается клиентом по RPC).
+function Tracker.Snapshot()
+    local kills = {}
+    for slug, kill in pairs(S.kills) do
+        local count = tonumber(kill.count) or 0
+        if count > 0 then
+            kills[slug] = obj({
+                count = count,
+                day = tonumber(kill.day) or 0,
+                date = kill.date or "",
+            })
+        end
+    end
+
+    local marks = {}
+    for id, on in pairs(S.marks) do
+        if on then
+            marks[id] = true
+        end
+    end
+
+    local retro = {}
+    for slug, count in pairs(S.retro) do
+        local n = tonumber(count) or 0
+        if n > 0 then
+            retro[slug] = n
+        end
+    end
+
+    return obj({
+        shard = S.shard,
+        world = world_state(),
+        kills = kills,
+        retro = retro,
+        marks = marks,
+        skills = skills_state(),
+        mark_count = Tracker.MARK_COUNT,
+    })
+end
+
+function Tracker.SnapshotJSON()
+    return json_value(Tracker.Snapshot())
 end
 
 function Tracker.Write(force)

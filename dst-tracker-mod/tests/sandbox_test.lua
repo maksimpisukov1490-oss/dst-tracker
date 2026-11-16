@@ -14,6 +14,7 @@ local engine = {
     TheSim = { SetPersistentString = function(_, key, text) engine.persisted = (engine.persisted or 0) + 1 end },
     TheNet = {
         GetIsServer = function() return true end,
+        GetIsClient = function() return false end,
         GetServerName = function() return "Мир Recviem1242_LTE" end,
         GetUserID = function() return "U1" end,
         GetClientTable = function()
@@ -24,6 +25,7 @@ local engine = {
         end,
     },
     AllPlayers = {},
+    TUNING = { MOON_ALTAR_ASTRAL_COMPLETE_WORK = 10 },
     persisted = 0,
 }
 local G = setmetatable(engine, { __index = _G })
@@ -34,7 +36,32 @@ local function sandbox_index(_, k)
     return nil
 end
 
+local rpc_handlers = {}
+local client_rpc_handlers = {}
+local rpc_sent = nil
+local function AddModRPCHandler(ns, name, fn)
+    rpc_handlers[ns .. "." .. name] = fn
+end
+local function AddClientModRPCHandler(ns, name, fn)
+    client_rpc_handlers[ns .. "." .. name] = fn
+end
+local function GetModRPC(ns, name)
+    return { namespace = ns, name = name }
+end
+local function GetClientModRPC(ns, name)
+    return { namespace = ns, name = name }
+end
+local function SendModRPCToClient(id, userid, data)
+    rpc_sent = { id = id, userid = userid, data = data }
+end
+local function SendModRPCToServer()
+end
+
 local postinits = {}
+local player_postinits = {}
+local function AddPlayerPostInit(fn)
+    table.insert(player_postinits, fn)
+end
 local function AddPrefabPostInit(prefab, fn)
     postinits[prefab] = postinits[prefab] or {}
     table.insert(postinits[prefab], fn)
@@ -55,10 +82,17 @@ end
 
 env = {
     pairs = pairs, ipairs = ipairs, print = print, math = math, table = table,
-    type = type, string = string, tostring = tostring, require = require,
-    GLOBAL = G, modname = MODNAME, MODROOT = root .. "/",
+    type = type, string = string, tostring = tostring, pcall = pcall, require = require,
+    GLOBAL = G, TUNING = engine.TUNING, modname = MODNAME, MODROOT = root .. "/",
     modimport = modimport,
     AddPrefabPostInit = AddPrefabPostInit,
+    AddPlayerPostInit = AddPlayerPostInit,
+    AddModRPCHandler = AddModRPCHandler,
+    AddClientModRPCHandler = AddClientModRPCHandler,
+    GetModRPC = GetModRPC,
+    GetClientModRPC = GetClientModRPC,
+    SendModRPCToClient = SendModRPCToClient,
+    SendModRPCToServer = SendModRPCToServer,
     GetModConfigData = GetModConfigData,
     modassert = assert, moderror = error,
 }
@@ -107,6 +141,31 @@ die("twinofterror1")
 die("twinofterror2")
 die("stalker_atrium")
 
+local ok_snap, snap = pcall(env.Tracker.SnapshotJSON)
+if not ok_snap then
+    print("FAIL snapshot: " .. tostring(snap))
+    os.exit(1)
+end
+if type(snap) ~= "string" or #snap < 10 then
+    print("FAIL snapshot json")
+    os.exit(1)
+end
+if env.Tracker.MARK_COUNT ~= #env.Tracker.MARKS then
+    print("FAIL mark count")
+    os.exit(1)
+end
+
+local rpc = rpc_handlers["dst_tracker.request_snapshot"]
+if not rpc then
+    print("FAIL request_snapshot rpc")
+    os.exit(1)
+end
+rpc({ userid = "U1" })
+if not rpc_sent or rpc_sent.userid ~= "U1" or type(rpc_sent.data) ~= "string" then
+    print("FAIL snapshot rpc response")
+    os.exit(1)
+end
+
 local uniq, seen = {}, {}
 for _, k in ipairs(missing) do
     if not seen[k] then seen[k] = true; uniq[#uniq + 1] = k end
@@ -115,4 +174,4 @@ if #uniq > 0 then
     print("FAIL sandbox: модуль читает отсутствующие глобалы: " .. table.concat(uniq, ", "))
     os.exit(1)
 end
-print("OK persisted=" .. tostring(engine.persisted))
+print("OK persisted=" .. tostring(engine.persisted) .. " snapshot=" .. tostring(#snap) .. " marks=" .. tostring(env.Tracker.MARK_COUNT) .. " rpc=" .. tostring(#rpc_sent.data))
