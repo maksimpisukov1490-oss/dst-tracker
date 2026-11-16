@@ -583,8 +583,7 @@
             '<circle cx="0" cy="4.5" r="1.5" class="sknode__keyhole"/>' +
           '</g>'
         : (s.icon ? '' : '<text x="' + s.x + '" y="' + (-s.y + 5) + '" text-anchor="middle" class="sknode__q">?</text>');
-      return '<g class="' + cls + '" data-skill="' + esc(s.id) + '">' +
-        '<title>' + esc(s.title) + '</title>' +
+      return '<g class="' + cls + '" data-skill="' + esc(s.id) + '" aria-label="' + esc(s.title) + '">' +
         '<circle class="sknode__ring" cx="' + s.x + '" cy="' + (-s.y) + '" r="20"/>' +
         '<circle class="sknode__inner" cx="' + s.x + '" cy="' + (-s.y) + '" r="15"/>' +
         icon + glyph + '</g>';
@@ -594,6 +593,7 @@
     var xp = skillsState ? (skillsState.xp || 0) : 0;
     var xpPct = xpProgress(xp);
     var bgPath = 'assets/skills/bg/' + (run.char || '') + '.png';
+    var bgUrl = new URL(bgPath, document.baseURI).href;
     var insight = skillsState
       ? '<div class="skilltree__insight"><span class="skilltree__star">✦</span><b>' + points + '</b><span>озарения</span></div>'
       : '<div class="skilltree__insight skilltree__insight--off">Подключи игру</div>';
@@ -603,19 +603,30 @@
       : '';
     var face = tree.head ? '<img class="skilltree__face" src="' + esc(tree.head) + '" alt="">' : '';
 
+    var lockConds = [];
+    tree.skills.forEach(function (s) {
+      if (s.lock && s.title && lockConds.indexOf(s.title) < 0) lockConds.push(s.title);
+    });
+    var lockBlock = lockConds.length
+      ? '<details class="skilltree__locks" open><summary>Условия открытия (' + lockConds.length + ')</summary><ul>' +
+        lockConds.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul></details>'
+      : '';
+
     els.grid.innerHTML = '<div class="skilltree">' +
       '<div class="skilltree__head">' + face +
         '<div class="skilltree__title"><h3>' + esc(tree.name) + '</h3><p>Древо навыков</p></div>' +
         insight +
         '<div class="skilltree__legend"><span class="is-on">изучено</span><span>не изучено</span><span class="is-lock">условие</span></div>' +
       '</div>' + xpBlock +
-      '<div class="skilltree__canvas" style="--tree-bg:url(\'' + esc(bgPath) + '\')">' +
+      '<div class="skilltree__canvas" style="--tree-bg:url(\'' + esc(bgUrl) + '\')">' +
         '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid meet">' +
           '<g class="skilltree__groups">' + groupLabels + '</g>' +
           '<g class="skilltree__lines">' + lines.join('') + '</g>' +
           '<g class="skilltree__nodes">' + nodes + '</g>' +
         '</svg></div>' +
       '<div class="skilltree__details" id="skill-details">Нажми на навык, чтобы прочитать описание.</div>' +
+      lockBlock +
+      '<div class="skilltip" id="skill-tip" hidden></div>' +
       '</div>';
 
     wireSkills(tree);
@@ -626,6 +637,56 @@
     if (!box) return;
     var details = document.getElementById('skill-details');
     if (!details) return;
+    var tip = document.getElementById('skill-tip');
+
+    function skillById(id) {
+      var found = null;
+      tree.skills.forEach(function (x) { if (x.id === id) found = x; });
+      return found;
+    }
+    function statusOf(s) {
+      var run = currentRun();
+      var list = (run && run.skills && run.skills.list) || [];
+      var on = list.indexOf(s.id) >= 0;
+      var av = false;
+      if (!s.lock && !on) {
+        var parents = (s.connects || []).filter(function (pid) { return list.indexOf(pid) >= 0; });
+        av = !!(s.root || parents.length);
+      }
+      return s.lock ? 'Условие открытия' : (on ? 'Изучен' : (av ? 'Доступен' : 'Не изучен'));
+    }
+    function placeTip(e) {
+      if (!tip) return;
+      var pad = 16;
+      var w = tip.offsetWidth || 240;
+      var h = tip.offsetHeight || 80;
+      var left = e.clientX + pad;
+      var top = e.clientY + pad;
+      if (left + w > window.innerWidth - 8) left = e.clientX - w - pad;
+      if (top + h > window.innerHeight - 8) top = e.clientY - h - pad;
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+    }
+    if (tip) {
+      box.addEventListener('pointermove', function (e) {
+        var g = e.target.closest ? e.target.closest('.sknode') : null;
+        if (!g) { tip.hidden = true; return; }
+        var s = skillById(g.getAttribute('data-skill'));
+        if (!s) { tip.hidden = true; return; }
+        if (tip.getAttribute('data-skill') !== s.id) {
+          tip.setAttribute('data-skill', s.id);
+          tip.innerHTML = s.lock
+            ? '<b>Условие открытия</b><p>' + esc(s.title) + '</p>'
+            : '<b>' + esc(s.title) + '</b>' +
+              '<span class="skilltip__status">' + statusOf(s) + '</span>' +
+              (s.desc ? '<p>' + esc(s.desc) + '</p>' : '');
+        }
+        tip.hidden = false;
+        placeTip(e);
+      });
+      box.addEventListener('pointerleave', function () { tip.hidden = true; });
+    }
+
     box.addEventListener('click', function (e) {
       var g = e.target.closest ? e.target.closest('.sknode') : null;
       if (!g) return;
@@ -646,7 +707,6 @@
         var parents = (s.connects || []).filter(function (pid) { return list.indexOf(pid) >= 0; });
         av = !!(s.root || parents.length);
       }
-      var status = s.lock ? 'Условие открытия' : (on ? 'Изучен' : (av ? 'Доступен' : 'Не изучен'));
       var icon = s.icon
         ? '<img class="skilltree__dicon" src="' + esc(s.icon) + '" alt="">'
         : '<span class="skilltree__dicon skilltree__dicon--lock">' +
@@ -655,6 +715,14 @@
               '<rect x="-8" y="-2" width="16" height="12" rx="2"/>' +
               '<circle cx="0" cy="4.5" r="1.5"/>' +
             '</svg></span>';
+      if (s.lock) {
+        details.innerHTML = icon + '<div class="skilltree__dtext">' +
+          '<h4>Условие открытия</h4>' +
+          '<p class="skilltree__cond">' + esc(s.title) + '</p>' +
+          '</div>';
+        return;
+      }
+      var status = on ? 'Изучен' : (av ? 'Доступен' : 'Не изучен');
       details.innerHTML = icon + '<div class="skilltree__dtext">' +
         '<h4>' + esc(s.title) + '</h4>' +
         '<p class="skilltree__status' + (on ? ' is-on' : (av ? ' is-available' : '')) + '">' + status + '</p>' +

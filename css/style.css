@@ -926,3 +926,26 @@ body{
 }
 .skilltree__dlock rect{ fill:rgba(201,168,90,.18); }
 .skilltree__dlock circle{ fill:#8a6a1f; }
+
+/* подсказка над узлом навыка */
+.skilltip{
+  position:fixed; z-index:90; max-width:300px; padding:10px 12px;
+  background:linear-gradient(rgba(32,24,15,.97), rgba(14,10,7,.98));
+  color:#efe3c6; border:1px solid #b8912f; border-radius:6px;
+  box-shadow:0 10px 28px rgba(0,0,0,.65);
+  font-size:13px; line-height:1.4; pointer-events:none;
+}
+.skilltip[hidden]{ display:none; }
+.skilltip b{ display:block; font-family:var(--font-script); font-size:19px; color:#f0d37a; margin-bottom:3px; }
+.skilltip__status{ display:block; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:#c9b489; margin-bottom:5px; }
+.skilltip p{ margin:0; color:#e9dbbc; white-space:pre-line; }
+
+/* список условий открытия под деревом */
+.skilltree__locks{
+  margin-top:12px; padding:10px 14px; border-radius:8px;
+  border:1px dashed rgba(122,85,40,.4); background:rgba(255,250,235,.4);
+  color:#33281a; font-size:13px;
+}
+.skilltree__locks summary{ cursor:pointer; font-family:var(--font-script); font-size:18px; color:#2f2210; }
+.skilltree__locks ul{ margin:8px 0 0; padding-left:20px; }
+.skilltree__locks li{ margin:3px 0; }
