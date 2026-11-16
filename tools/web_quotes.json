@@ -1,0 +1,1488 @@
+{
+ "deerclops": {
+  "page": "Deerclops/DST",
+  "quotes": {
+   "wilson": "It's enormous!!",
+   "willow": "Holy crap!",
+   "wolfgang": "He looks mightier than me.",
+   "wendy": "Death incarnate!",
+   "wx78": "DANGER! THREAT INCOMING!",
+   "wickerbottom": "Laurasiatheria!",
+   "woodie": "That's a big moose!",
+   "maxwell": "Even I'm afraid of that guy.",
+   "wigfrid": "Rays will shine thröugh my spear and pöke öut yöur eyeball!",
+   "webber": "He might be able to digest me!",
+   "warly": "I once had a saucier who looked like that.",
+   "wormwood": "Branch Head branches",
+   "winona": "Don't even think about it, you dumb lug!",
+   "wortox": "So large, so rude, so full of 'tude!",
+   "wurt": "She not look happy, florp.",
+   "walter": "Woah! It's you!",
+   "wanda": "Do we really have to do this again?"
+  },
+  "drops": [
+   {
+    "en": "Meat",
+    "qty": "×8"
+   },
+   {
+    "en": "Deerclops Eyeball",
+    "qty": ""
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "bearger": {
+  "page": "Bearger/DST",
+  "quotes": {
+   "wilson": "What a bear of a badger.",
+   "willow": "Whoa! Niiiice bear...",
+   "wolfgang": "Wolfgang not want to fight big bear.",
+   "wendy": "It could crush me in one blow. I wish it would.",
+   "wx78": "HIBERNATION IMMINENT",
+   "wickerbottom": "It's the Caniformia suborder... Beyond that, I cannot say.",
+   "woodie": "That's a big bear!",
+   "maxwell": "Take anything you want.",
+   "wigfrid": "Beast ör bear-serker?",
+   "webber": "Run for the hills!",
+   "warly": "Oh, I don't like you one bit!",
+   "wormwood": "Mad Molter",
+   "winona": "Bring it on, ya big lug!",
+   "wortox": "Do not eat me, oh please, oh please!",
+   "wurt": "Run away!!",
+   "walter": "Look at those razor sharp claws! I need to get a closer view!",
+   "wanda": "All the worst parts of a bear and a badger rolled into one."
+  },
+  "drops": [
+   {
+    "en": "Meat",
+    "qty": "×8"
+   },
+   {
+    "en": "Thick Fur",
+    "qty": ""
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   },
+   {
+    "en": "Fur Tuft",
+    "qty": ""
+   }
+  ]
+ },
+ "moose_goose": {
+  "page": "Moose/Goose/DST",
+  "quotes": {
+   "wilson": "I don't exactly know what that thing is.",
+   "willow": "What in the world...",
+   "wolfgang": "Very strange creature.",
+   "wendy": "It's an abomination.",
+   "wx78": "ANALYSIS RESULTS UNCERTAIN",
+   "wickerbottom": "I dub it Alces canadensis.",
+   "woodie": "Whatever it is, it's definitely Canadian.",
+   "maxwell": "It's definitely from the North, whatever it is.",
+   "wigfrid": "I wish I cöuld ride it intö battle.",
+   "webber": "She doesn't look at all pleased to see us.",
+   "warly": "I wish you were a bit less moose-y and a lot more goose-y!",
+   "wormwood": "Branch Head Tweeter.",
+   "winona": "Oh, mama!",
+   "wortox": "What manner of beast are you?",
+   "wurt": "This \"Mother Goose\" that Wicker-lady told about?",
+   "walter": "Woah! Now THAT should be Canada's national animal!",
+   "wanda": "I could never forget a face like that."
+  },
+  "drops": [
+   {
+    "en": "Meat",
+    "qty": "×6"
+   },
+   {
+    "en": "Drumstick",
+    "qty": "×2"
+   },
+   {
+    "en": "Down Feather",
+    "qty": "×3-5"
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "dragonfly": {
+  "page": "Dragonfly/DST",
+  "quotes": {
+   "wilson": "That's one fly dragon!",
+   "willow": "It's filled with fire!",
+   "wolfgang": "I confuse... Is dragonfly, or dragon-fly?",
+   "wendy": "It's burning on the inside.",
+   "wx78": "HIGH TEMPERATURE RADIATING FROM FLY BEAST",
+   "wickerbottom": "It's some kind of mythical variant of a Diptera.",
+   "woodie": "She'll burn all the trees before I can chop them!",
+   "maxwell": "A fiery fly.",
+   "wigfrid": "Ah, dragön! At last we meet!",
+   "webber": "Oh, don't you just drag on.",
+   "winona": "Get a load of this flying welding torch!",
+   "warly": "I'm not cut out for this.",
+   "wortox": "Fear me! I'm a scary imp!",
+   "wormwood": "Patuey Fly",
+   "wurt": "Scaled-folk shouldn't fight, florp!",
+   "walter": "Woah! It's a giant bug!",
+   "wanda": "Ohhhh I was really hoping to avoid dodging fiery bug monsters today."
+  },
+  "drops": [
+   {
+    "en": "Scales",
+    "qty": ""
+   },
+   {
+    "en": "Blueprint (rare)",
+    "qty": ""
+   },
+   {
+    "en": "Lavae Egg",
+    "qty": "×0-1"
+   },
+   {
+    "en": "Meat",
+    "qty": "×6"
+   },
+   {
+    "en": "Gold Nugget",
+    "qty": "×4-8"
+   },
+   {
+    "en": "Red Gem",
+    "qty": "×2"
+   },
+   {
+    "en": "Blue Gem",
+    "qty": "×2"
+   },
+   {
+    "en": "Purple Gem",
+    "qty": "×1-2"
+   },
+   {
+    "en": "Orange Gem",
+    "qty": "×1-2"
+   },
+   {
+    "en": "Yellow Gem",
+    "qty": "×1-2"
+   },
+   {
+    "en": "Green Gem",
+    "qty": "×1-2"
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "bee_queen": {
+  "page": "Bee_Queen",
+  "quotes": {
+   "wilson": "Keep that stinger away from me!",
+   "willow": "No amount of honey is worth THAT!",
+   "wolfgang": "Is giant lady bee!",
+   "wendy": "As regal as she is ruthless...",
+   "wx78": "THE PRIME BEE",
+   "wickerbottom": "The workers ferociously protect her.",
+   "woodie": "Bees got no business getting that big.",
+   "maxwell": "I didn't make that one! Really!",
+   "wigfrid": "Yöur mönarchy shall töpple this day!",
+   "webber": "Bees aren't our friends!",
+   "winona": "It's the queen of bees!",
+   "warly": "Your honey was too delicious not to steal!",
+   "wortox": "Tweeheehe! You're a big bee!",
+   "wormwood": "Big Mommy Buzz!",
+   "wurt": "Queen of stingers!!",
+   "walter": "If I make friends with their queen, maybe the bees won't sting me!",
+   "wanda": "This was a terrible idea!"
+  },
+  "drops": [
+   {
+    "en": "Honey",
+    "qty": "×3-4"
+   },
+   {
+    "en": "Honeycomb",
+    "qty": "×1-2"
+   },
+   {
+    "en": "Stinger",
+    "qty": "×1"
+   },
+   {
+    "en": "Royal Jelly",
+    "qty": "×6-7"
+   },
+   {
+    "en": "Bee Queen Crown",
+    "qty": ""
+   },
+   {
+    "en": "Blueprint (rare)",
+    "qty": ""
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "klaus": {
+  "page": "Klaus",
+  "quotes": {
+   "wilson": "What on earth is that thing!",
+   "willow": "A lump of coal would be really useful, actually!",
+   "wolfgang": "Wolfgang is not naughty! He is MIGHTY!",
+   "wendy": "I see him when I'm sleeping...",
+   "wx78": "THE RED FLESHSACK LACKS OPTICAL SENSORS",
+   "wickerbottom": "It employs a powerful olfactory sense to locate prey.",
+   "woodie": "Thing's got no eyes, eh?",
+   "maxwell": "My, what a magnificently horrific creature.",
+   "wigfrid": "I shall free thy deer this day!",
+   "webber": "That meanie imprisoned those deer!",
+   "winona": "Get out of here ya big creep.",
+   "warly": "He doesn't look very jolly.",
+   "wortox": "Are we not brethren?",
+   "wormwood": "Hello!... Friend?",
+   "wurt": "You have presents for me?",
+   "walter": "Woah! Who are you?",
+   "wanda": "Is it that time of year again already?"
+  },
+  "drops": [
+   {
+    "en": "Charcoal",
+    "qty": "×1"
+   },
+   {
+    "en": "Stag Antler",
+    "qty": "×1"
+   },
+   {
+    "en": "Monster Meat",
+    "qty": "×1"
+   },
+   {
+    "en": "Sketch",
+    "qty": "×2"
+   }
+  ]
+ },
+ "toadstool": {
+  "page": "Toadstool",
+  "quotes": {
+   "wilson": "Yeesh! I'm not kissing that!",
+   "willow": "It's covered in nasty warts and fungus!!",
+   "wolfgang": "Bah! Frogman was hiding like coward!",
+   "wendy": "Just swallow us whole and end our misery.",
+   "wx78": "PUT IT BACK IN THE GROUND",
+   "wickerbottom": "It has formed a dangerous symbiotic relationship with fungal spores.",
+   "woodie": "I'm gonna need a bigger axe.",
+   "maxwell": "What an abomination!",
+   "wigfrid": "Ha! Finally, a wörthy föe!",
+   "webber": "Yikes! That's a big frog!",
+   "winona": "I don't got this!",
+   "warly": "What massive legs you have!",
+   "wortox": "Ooo, you look like FUN!",
+   "wormwood": "Ribbit giving friends a ride!",
+   "wurt": "Has pretty face, bad personality.",
+   "walter": "A real giant frog monster!",
+   "wanda": "I really should have remembered something like you!"
+  },
+  "drops": [
+   {
+    "en": "Frog Legs",
+    "qty": "×1"
+   },
+   {
+    "en": "Meat",
+    "qty": "×3"
+   },
+   {
+    "en": "Red Cap",
+    "qty": "×1"
+   },
+   {
+    "en": "Green Cap",
+    "qty": "×1"
+   },
+   {
+    "en": "Blue Cap",
+    "qty": "×1"
+   },
+   {
+    "en": "Blue Spore",
+    "qty": "×2"
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   },
+   {
+    "en": "Shroom Skin",
+    "qty": "×1"
+   },
+   {
+    "en": "Blueprint (rare)",
+    "qty": ""
+   }
+  ]
+ },
+ "antlion": {
+  "page": "Antlion",
+  "quotes": {
+   "wilson": "It wants something from me.",
+   "willow": "What do you want?!",
+   "wolfgang": "Scary monster is friend?",
+   "wendy": "Do you know any riddles?",
+   "wx78": "IT'S BIG FOR AN ORGANIC",
+   "wickerbottom": "Ah. You must be behind all the seismic activity.",
+   "woodie": "They grow'em big out here, eh?",
+   "maxwell": "Have you no pride?",
+   "wigfrid": "Tis the mighty liön!",
+   "webber": "You're fuzzy. We like that.",
+   "winona": "How's the weather up there?",
+   "warly": "I think it's friendly.",
+   "wortox": "You need only tell me what you desire.",
+   "wormwood": "Hello!",
+   "wurt": "What you want?",
+   "walter": "Hi!",
+   "wanda": "Oh botheration, I hope I remembered to bring a gift."
+  },
+  "drops": [
+   {
+    "en": "Desert Stone",
+    "qty": "×6-8"
+   },
+   {
+    "en": "Meat",
+    "qty": "×4"
+   },
+   {
+    "en": "Rocks",
+    "qty": "×2-4"
+   },
+   {
+    "en": "Trinkets",
+    "qty": ""
+   },
+   {
+    "en": "Blueprint (rare)",
+    "qty": ""
+   },
+   {
+    "en": "Turf-Raiser Helm",
+    "qty": ""
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "malbatross": {
+  "page": "Malbatross",
+  "quotes": {
+   "wilson": "A fowl beast indeed!",
+   "willow": "Uh... nice bird?",
+   "wolfgang": "Big fishy bird!",
+   "wendy": "What a horrid bird!",
+   "wx78": "THE AWFUL WATER BIRD MUST DIE",
+   "wickerbottom": "It appears to be of the family Diomedeidae.",
+   "woodie": "It just had to be a giant bird.",
+   "maxwell": "I've no desire to do battle with that thing.",
+   "wigfrid": "I will slay the föur-winged beast!",
+   "webber": "Woah! That's a big bird!",
+   "winona": "Yeesh, you're a big fella!",
+   "warly": "Très mal, indeed.",
+   "wortox": "It's bad luck to shoot it down, but what do I know? Hyuyu!",
+   "wormwood": "Big Tweeter",
+   "wurt": "Bad bird!",
+   "walter": "Woah, look at that wingspan!",
+   "wanda": "Of course this couldn't be just a quiet, pleasant boat trip..."
+  },
+  "drops": [
+   {
+    "en": "Meat",
+    "qty": "×7"
+   },
+   {
+    "en": "Malbatross Bill",
+    "qty": ""
+   },
+   {
+    "en": "Malbatross Feather",
+    "qty": "×3-24"
+   },
+   {
+    "en": "Blue Gem",
+    "qty": "×2"
+   },
+   {
+    "en": "Yellow Gem",
+    "qty": ""
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "crab_king": {
+  "page": "Crab_King",
+  "quotes": {
+   "wilson": "Yikes! A little too crabby for me.",
+   "willow": "He doesn't look too happy...",
+   "wolfgang": "This makes Wolfgang very scared AND hungry.",
+   "wendy": "One of us will be sent to a watery grave...",
+   "wx78": "A FLESHSACK DISGUISED AS A NON-FLESHSACK",
+   "wickerbottom": "I wonder if its size is natural or caused by lunar mutations?",
+   "woodie": "I think we might've bothered him.",
+   "maxwell": "Say, pal, why don't we try to work this out?",
+   "wigfrid": "Have at thee, cursed crustacean!",
+   "webber": "He looks pretty crabby!",
+   "winona": "Looks like he thinks he's the boss around here.",
+   "warly": "Oh, the dishes I could make with that much crab meat...",
+   "wortox": "Another cursed soul.",
+   "wormwood": "Crabby...",
+   "wurt": "Glurp... he kinda cranky.",
+   "walter": "YES!! Now that's a proper sea monster!",
+   "wanda": "Ah! There you are, you old codger!"
+  },
+  "drops": [
+   {
+    "en": "Meat",
+    "qty": "×5-6"
+   },
+   {
+    "en": "Message in a Bottle (DST)",
+    "qty": "×2-4"
+   },
+   {
+    "en": "Crab King Bumper Kit",
+    "qty": "×8"
+   },
+   {
+    "en": "Soprano Shell Bell",
+    "qty": "×3-5"
+   },
+   {
+    "en": "Alto Shell Bell",
+    "qty": "×2-4"
+   },
+   {
+    "en": "Baritone Shell Bell",
+    "qty": "×1-3"
+   },
+   {
+    "en": "Barnacles",
+    "qty": "×2-4"
+   },
+   {
+    "en": "Blueprint (rare)",
+    "qty": ""
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   },
+   {
+    "en": "Cracked Pearl",
+    "qty": ""
+   },
+   {
+    "en": "x24",
+    "qty": "×24"
+   }
+  ]
+ },
+ "ancient_fuelweaver": {
+  "page": "Ancient_Fuelweaver",
+  "quotes": {
+   "wilson": "Why'd it have to be so big?",
+   "willow": "It's just bones and shadow.",
+   "wolfgang": "Scary man!",
+   "wendy": "Do you mourn, too?",
+   "wx78": "I WILL DESTROY YOU",
+   "wickerbottom": "We could have learned much from each other.",
+   "woodie": "That fuel stuff's gone to its head.",
+   "maxwell": "The Atrium's power restored his mind.",
+   "wigfrid": "Tis nö mindless beast!",
+   "webber": "We'll defend ourselves if we have to.",
+   "winona": "You got a bone to pick with me, bub? Ha!",
+   "wortox": "Shall we dance, dearest demon?",
+   "warly": "This won't be an easy fight.",
+   "wormwood": "Aggh! Big Bone Roarer!",
+   "wurt": "Glurp, i-it real!",
+   "walter": "Maybe he knows something about the bug people that lived here!",
+   "wanda": "This was a VERY bad idea."
+  },
+  "drops": [
+   {
+    "en": "Fossils",
+    "qty": "×8"
+   },
+   {
+    "en": "Shadow Thurible",
+    "qty": "×4-6"
+   },
+   {
+    "en": "Shadow Atrium",
+    "qty": ""
+   }
+  ]
+ },
+ "celestial_champion": {
+  "page": "Celestial_Champion",
+  "quotes": {
+   "wilson": "You'll pay for breaking all that science!",
+   "willow": "Ugh, I KNEW we shouldn't have been messing with all that dumb science junk.",
+   "wolfgang": "Ha! Wolfgang's punches are mighty enough to shatter stone!",
+   "wendy": "We've brought on our own demise.",
+   "wx78": "CRUSH THE ORGANICS! AHAHAHA! WAIT, NO! NOT ME!",
+   "wickerbottom": "Our activities seem to have triggered a defense mechanism of sorts.",
+   "woodie": "Hey! Watch where you're rollin', eh?",
+   "maxwell": "It seems our actions have been noticed.",
+   "wigfrid": "Mani hath sent förth his greatest warriör tö challenge me!",
+   "webber": "Aah! It looks mad!",
+   "warly": "It looks rather irritated...",
+   "wormwood": "From Night Ball?",
+   "winona": "That thing went and busted up all our hard work!",
+   "wortox": "We got off to a rocky start, didn't we? Hyuyu!",
+   "wurt": "Glorp! Didn't do it! Didn't do it!",
+   "walter": "Woah, is that a space creature?!",
+   "wanda": "Oh botheration, not you..."
+  },
+  "drops": [
+   {
+    "en": "Moon Rock",
+    "qty": "×5-7"
+   }
+  ]
+ },
+ "eye_of_terror": {
+  "page": "Eye of Terror",
+  "quotes": {
+   "wilson": "Go for the eye!",
+   "willow": "What's your problem? Quit staring!",
+   "wolfgang": "Wolfgang not like big scary eye!",
+   "wendy": "Beware the evil eye.",
+   "wx78": "INITIALIZING \"POKE\" PROTOCOLS",
+   "wickerbottom": "Oculus dexter or oculus sinister, I wonder? I have a suspicion it's the latter.",
+   "woodie": "Feast your eye on my axe!",
+   "maxwell": "Don't look at me, it's definitely not one of mine.",
+   "wigfrid": "Be it the plucked eye öf Ödin himself, returned för revenge?",
+   "webber": "We don't like the look of that...",
+   "winona": "Yeesh, what an eyesore.",
+   "warly": "That eye has a hungry look to it...",
+   "wortox": "Whatever he says I did, it's a lie!",
+   "wormwood": "Biiiig peeper!",
+   "wurt": "Glurp...",
+   "walter": "Wow! Do you think it escaped from a giant head?",
+   "wanda": "I don't think that's supposed to be here..."
+  },
+  "drops": [
+   {
+    "en": "Monster Meat",
+    "qty": "×2-4"
+   },
+   {
+    "en": "Milky Whites",
+    "qty": "×3-5"
+   },
+   {
+    "en": "Eye Mask",
+    "qty": ""
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "twins_of_terror": {
+  "page": "Twins of Terror",
+  "quotes": {
+   "wilson": "Go for the eye!",
+   "willow": "What's your problem? Quit staring!",
+   "wolfgang": "Wolfgang not like big scary eye!",
+   "wendy": "Beware the evil eye.",
+   "wx78": "INITIALIZING \"POKE\" PROTOCOLS",
+   "wickerbottom": "Oculus dexter or oculus sinister, I wonder? I have a suspicion it's the latter.",
+   "woodie": "Feast your eye on my axe!",
+   "maxwell": "Don't look at me, it's definitely not one of mine.",
+   "wigfrid": "Be it the plucked eye öf Ödin himself, returned för revenge?",
+   "webber": "We don't like the look of that...",
+   "winona": "Yeesh, what an eyesore.",
+   "warly": "That eye has a hungry look to it...",
+   "wortox": "Whatever he says I did, it's a lie!",
+   "wormwood": "Biiiig peeper!",
+   "wurt": "Glurp...",
+   "walter": "Wow! Do you think it escaped from a giant head?",
+   "wanda": "I don't think that's supposed to be here..."
+  },
+  "drops": [
+   {
+    "en": "Monster Meat",
+    "qty": "×2-4"
+   },
+   {
+    "en": "Milky Whites",
+    "qty": "×3-5"
+   },
+   {
+    "en": "Eye Mask",
+    "qty": ""
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "shadow_pieces": {
+  "page": "Shadow Pieces",
+  "quotes": {},
+  "drops": [
+   {
+    "en": "Nightmare Fuel",
+    "qty": "×1-2"
+   },
+   {
+    "en": "Night Armour",
+    "qty": ""
+   },
+   {
+    "en": "Dark Sword",
+    "qty": ""
+   },
+   {
+    "en": "Shadow Atrium",
+    "qty": ""
+   }
+  ]
+ },
+ "nightmare_werepig": {
+  "page": "Nightmare Werepig",
+  "quotes": {
+   "wilson": "I feel almost sorry for him.",
+   "willow": "Looks like somebody's having a bad day.",
+   "wolfgang": "Angry piggie has gotten more muscles!",
+   "wendy": "What a pitiful creature.",
+   "wx78": "THE FLESHSACK IS STUCK. LET US POINT AND LAUGH AT IT",
+   "wickerbottom": "My, how did it end up in this state?",
+   "woodie": "Whatever he's got better not be contagious.",
+   "maxwell": "You went nosing around places you shouldn't have, didn't you?",
+   "wigfrid": "The beast hath been cönsumed by föul magic.",
+   "webber": "He doesn't look like a normal pig. Or even a normal werepig.",
+   "warly": "I don't know whether to feel fear or pity.",
+   "wormwood": "Stuck. Poor Twirly Tail",
+   "winona": "That pig's seen better days.",
+   "wortox": "Friend or foe?",
+   "wurt": "Nyeeeeehhh!!",
+   "walter": "We can't just leave him like that, Woby! We've gotta help him!",
+   "wanda": "I shouldn't involve myself in these things."
+  },
+  "drops": [
+   {
+    "en": "Pure Horror",
+    "qty": "×4-5"
+   },
+   {
+    "en": "Nightmare Fuel",
+    "qty": "×1"
+   },
+   {
+    "en": "Nightmare Werepig Sketch",
+    "qty": ""
+   },
+   {
+    "en": "Blueprint",
+    "qty": ""
+   },
+   {
+    "en": "Dreadstone Armor",
+    "qty": ""
+   },
+   {
+    "en": "Dreadstone Wall",
+    "qty": ""
+   }
+  ]
+ },
+ "scrappy_werepig": {
+  "page": "Scrappy Werepig",
+  "quotes": {
+   "wilson": "Let's not upset him.",
+   "willow": "Maybe I was wrong about him.",
+   "wolfgang": "Hey piggie! Wolfgang love to eat bacon for breakfast.",
+   "wendy": "He seems hungry for power. Perhaps to fill the void within.",
+   "wx78": "SLIGHT IMPROVEMENTS BUT STILL A STINKING FLESHSACK",
+   "wickerbottom": "The creature appears calm for now. Best not aggravate it.",
+   "woodie": "Hey there, buddy. You don't look so bad.",
+   "maxwell": "Someone needs a bath.",
+   "wigfrid": "The calm beföre the störm.",
+   "webber": "Does he want to play with us?",
+   "winona": "He seems to be minding his own business.",
+   "warly": "Perhaps he is not so bad after all.",
+   "wortox": "Freed indeed.",
+   "wormwood": "Nice Twirly Tail?",
+   "wurt": "I don't like him.",
+   "walter": "Don't worry, Woby. I think I can gain his trust.",
+   "wanda": "Well this is new."
+  },
+  "drops": [
+   {
+    "en": "Scrap",
+    "qty": "×4"
+   },
+   {
+    "en": "Horizon Expandinator",
+    "qty": ""
+   },
+   {
+    "en": "Auto-Mat-O-Chanic",
+    "qty": ""
+   },
+   {
+    "en": "Scrappy Chapauldron",
+    "qty": ""
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   },
+   {
+    "en": "Blueprint (rare)",
+    "qty": ""
+   }
+  ]
+ },
+ "frostjaw": {
+  "page": "Frostjaw",
+  "quotes": {
+   "maxwell": "Who dreamed up this icy abomination?",
+   "walter": "Better watch out for frostbite!",
+   "wanda": "A brute if I've ever seen one!",
+   "warly": "It looks rather tough.",
+   "wigfrid": "Whether land ör sea, a shallöw grave waits för thee.",
+   "webber": "Maybe it just wants to play with us.",
+   "wendy": "It has a bite no colder than reality.",
+   "wickerbottom": "This brute has broken innumerable laws of nature, and I simply will not have it.",
+   "willow": "Fire beats ice any day of the week.",
+   "wilson": "Shiver me timbers!",
+   "winona": "You picked the wrong gal to mess with!",
+   "wolfgang": "Wolfgang is stronger than any fish!",
+   "woodie": "I normally like ice fishin', but not when the fish bite back!",
+   "wormwood": "Icy Chomper!",
+   "wortox": "That's one cool customer, hyuyu!",
+   "wurt": "Grrr, bad fishie!",
+   "wx78": "IT HIDES ITS FLESHBODY UNDER COLD, INORGANIC MATERIAL. COMMENDABLE"
+  },
+  "drops": []
+ },
+ "lord_of_the_fruit_flies": {
+  "page": "Lord of the Fruit Flies",
+  "quotes": {
+   "wilson": "Hey, stop upsetting the plants!",
+   "willow": "You think you can barge in here and mess up the garden? That's my job!",
+   "wolfgang": "Ack! Is big and creepy!",
+   "wendy": "I would curtsy, but I've decided that I don't like you at all.",
+   "wx78": "WHY DO ITS MINIONS OBEY SO MUCH BETTER THAN MINE",
+   "wickerbottom": "I have no patience for garden pests!",
+   "woodie": "You came to the wrong garden, bud.",
+   "maxwell": "Hmph, they let just anyone be a lord these days.",
+   "wigfrid": "Thöu art nö lörd!",
+   "webber": "He's a big meanie!",
+   "winona": "You think you can just come in here and lord over my garden?",
+   "warly": "Mon dieu! It's killing the plants!",
+   "wortox": "Hyuyu! I would expect more civility from the nobility!",
+   "wormwood": "No! Leave friends alone!",
+   "wurt": "Grrr, go away! Those plants mine!",
+   "walter": "Neat! I mean, uh... I should probably get him out of the garden.",
+   "wanda": "I have no patience for your pestering!"
+  },
+  "drops": [
+   {
+    "en": "Friendly Fruit Fly Fruit",
+    "qty": ""
+   },
+   {
+    "en": "Leafy Meat",
+    "qty": ""
+   },
+   {
+    "en": "Plant Seeds",
+    "qty": "×4-8"
+   }
+  ]
+ },
+ "ancient_guardian": {
+  "page": "Ancient Guardian/DST",
+  "quotes": {
+   "wilson": "That thing doesn't look happy.",
+   "willow": "Poor thing. Trapped in this maze.",
+   "wolfgang": "Strong! Like me! I like him!",
+   "wendy": "He must be lonely, trapped in such a small cage.",
+   "wx78": "THIS MEAT HAS A POINTY END",
+   "wickerbottom": "Get away, you beast!",
+   "woodie": "Another poor soul with a curse.",
+   "maxwell": "My my, the fuel has changed you.",
+   "wigfrid": "What wönders. Let us duel!",
+   "webber": "Wear that frown upside down.",
+   "winona": "I've had about enough of terrible beasts!",
+   "warly": "Stay away!",
+   "wortox": "Goodness gracious, aren't you fearsome.",
+   "wormwood": "Don't want to fight!",
+   "wurt": "Glurp... it look cranky.",
+   "walter": "Aw, did someone leave you all alone down here?",
+   "wanda": "Ohhhh. Right. You."
+  },
+  "drops": [
+   {
+    "en": "Meat",
+    "qty": "×8"
+   },
+   {
+    "en": "Guardian's Horn",
+    "qty": ""
+   },
+   {
+    "en": "Ornate Chest",
+    "qty": ""
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   },
+   {
+    "en": "Blueprint (rare)",
+    "qty": ""
+   }
+  ]
+ },
+ "great_depths_worm": {
+  "page": "Great Depths Worm",
+  "quotes": {
+   "wilson": "It's a big worm!",
+   "willow": "Must be the mother.",
+   "wolfgang": "It is the mama worm.",
+   "wendy": "Nothing goes extinct here.",
+   "wx78": "SO MUCH PULSING VILE FLESH",
+   "wickerbottom": "This one is older, larger... deadlier.",
+   "woodie": "We can take her, Luce!",
+   "maxwell": "Who unearthed this monstrosity?",
+   "wigfrid": "A snake beast wörthy öf mine spear!",
+   "webber": "Wow.",
+   "winona": "Now that's a big ol' worm.",
+   "warly": "That worm looks hungry!",
+   "wortox": "Squirmy wormy! Hyuyu!",
+   "wormwood": "Hello, Big Wiggly!",
+   "wurt": "Don't eat me!",
+   "walter": "A monster worm!",
+   "wanda": "We go back, don't we?"
+  },
+  "drops": [
+   {
+    "en": "Monster Meat",
+    "qty": "×3-5"
+   },
+   {
+    "en": "Glow Berry",
+    "qty": "×1"
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "ancient_guard_tower": {
+  "page": "Ancient Guard Tower",
+  "quotes": {
+   "wilson": "We might've gotten off to a rocky start...",
+   "willow": "Come onnnn!",
+   "wolfgang": "Wolfgang does not like ancient interior decorating.",
+   "wendy": "It doesn't want me here... I don't blame it...",
+   "wx78": "GIVE UP YOUR PETTY ALLEGIANCES AND JOIN ME!",
+   "wickerbottom": "Goodness, it appears I've activated an ancient security mechanism.",
+   "woodie": "A big stone hoser.",
+   "maxwell": "Oh goody. I should have known it wouldn't be so easy.",
+   "wigfrid": "Thine charge is a nöble öne, but I cannöt let thee stand in my way!",
+   "webber": "Aaah!! Don't squish us!",
+   "winona": "C'mon you pile of bricks!",
+   "warly": "How do I keep getting mixed up in these things...",
+   "wortox": "Killer pillar!",
+   "wormwood": "Mean rock!",
+   "wurt": "Glorp! Didn't do it!!",
+   "walter": "Wow! The tower came to life!",
+   "wanda": "Oh botheration. I knew I was forgetting something important."
+  },
+  "drops": [
+   {
+    "en": "Thulecite/DST",
+    "qty": "×2-3"
+   },
+   {
+    "en": "Thulecite Fragments/DST",
+    "qty": "×1-3"
+   },
+   {
+    "en": "Rocks/DST",
+    "qty": "×2-4"
+   },
+   {
+    "en": "Moon Rock",
+    "qty": "×2-3"
+   },
+   {
+    "en": "Guard Tower Core",
+    "qty": "×1"
+   },
+   {
+    "en": "Spark Socket",
+    "qty": "×1"
+   },
+   {
+    "en": "Cranky Articulator",
+    "qty": "×2"
+   },
+   {
+    "en": "Ancient Guard Tower Figure Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "armored_bearger": {
+  "page": "Armored Bearger",
+  "quotes": {
+   "wilson": "Things are about to get hairy...",
+   "willow": "Did I ever mention my best friend is a bear?",
+   "wolfgang": "No fair, giant killing beast have armor too?",
+   "wendy": "Don't worry. Abby and I will put you out of your misery.",
+   "wx78": "THIS MEAT IS ARMORED",
+   "wickerbottom": "The parasite seems capable of altering its host body to suit its needs.",
+   "woodie": "Lookit those mitts! Someone get this tendy a twig!",
+   "maxwell": "It's even more brutish than before.",
+   "wigfrid": "The beast seeks vengeance!",
+   "webber": "It got scarier!",
+   "winona": "Grumpy hasn't had his mornin' cup of joe yet.",
+   "warly": "My, it seems that crystal really sticks to your ribs.",
+   "wortox": "I prefer the bare bear... barely.",
+   "wormwood": "Scary fuzzy big and mean and stinky",
+   "wurt": "Bad teddy.",
+   "walter": "A zombie Bearger? Neat!",
+   "wanda": "It's even worse the second time around."
+  },
+  "drops": [
+   {
+    "en": "Rot",
+    "qty": "×3-4"
+   },
+   {
+    "en": "Spark Ark Off",
+    "qty": ""
+   },
+   {
+    "en": "Nucleation Fluid",
+    "qty": ""
+   }
+  ]
+ },
+ "crystal_deerclops": {
+  "page": "Crystal Deerclops",
+  "quotes": {
+   "wilson": "It's got a little something in its eye.",
+   "willow": "Er... no hard feelings, right?",
+   "wolfgang": "Wolfgang not afraid of terrifying deer monster with sharp things. Right?",
+   "wendy": "Forced to continue its cursed existence... I pity it.",
+   "wx78": "PRODUCES INORGANIC MATTER? INTERESTING. STILL HATE IT",
+   "wickerbottom": "The reanimation process seems to have altered its physicality.",
+   "woodie": "It's growin' icicles? Must be from Quebec.",
+   "maxwell": "That creature has seen better days.",
+   "wigfrid": "The beast hath been changed by strange magicks!",
+   "webber": "Aah! We're sorry!",
+   "winona": "Shoulda wore safety goggles. Or is it goggle?",
+   "warly": "I never thought I'd miss the way it looked before...",
+   "wortox": "My, you're looking sharp! New haircut?",
+   "wormwood": "Branch head? What in eye?",
+   "wurt": "Poor deer. Want me pull out eye pokey?",
+   "walter": "Aww, I think that poor Deerclops is sick!",
+   "wanda": "Ah. I forgot that they do this sometimes."
+  },
+  "drops": [
+   {
+    "en": "Rot",
+    "qty": "×3-4"
+   },
+   {
+    "en": "Ice",
+    "qty": "×1-2"
+   },
+   {
+    "en": "Pure Brilliance",
+    "qty": "×1-2"
+   },
+   {
+    "en": "Spark Ark Off",
+    "qty": ""
+   },
+   {
+    "en": "Nucleation Fluid",
+    "qty": ""
+   }
+  ]
+ },
+ "possessed_varg": {
+  "page": "Possessed Varg",
+  "quotes": {
+   "wilson": "What big, glowing eyes you have!",
+   "willow": "Don't worry, you're still gonna go down in flames.",
+   "wolfgang": "Good monster doggy. Don't kill Wolfgang.",
+   "wendy": "It only lives for malice.",
+   "wx78": "IT HAS RECEIVED A FIRMWARE UPDATE",
+   "wickerbottom": "Its body has been drastically altered.",
+   "woodie": "You are one strange lookin' pooch.",
+   "maxwell": "I don't care for the new look.",
+   "wigfrid": "It is pössessed by angry spirits!",
+   "webber": "That's not a nice puppy!",
+   "winona": "Whose yard did you get out of?",
+   "warly": "Its temper hasn't improved one bit.",
+   "wortox": "This Rover has had quite the makeover!",
+   "wormwood": "Weird Woofer",
+   "wurt": "Spikey doggy.",
+   "walter": "That Varg doesn't look so good...",
+   "wanda": "Oh botheration, I'm getting deja vu..."
+  },
+  "drops": [
+   {
+    "en": "Rot",
+    "qty": "×2-3"
+   },
+   {
+    "en": "Spark Ark Off",
+    "qty": ""
+   },
+   {
+    "en": "Nucleation Fluid",
+    "qty": ""
+   }
+  ]
+ },
+ "umbral_abomination": {
+  "page": "Umbral Abomination",
+  "quotes": {
+   "wilson": "There is no scientific explanation for that.",
+   "willow": "Am I supposed to be scared or something?",
+   "wolfgang": "Finally... a match for Mighty Wolfgang.",
+   "wendy": "The abyss gazes back.... and walks among us.",
+   "wx78": "KNEEL BEFORE ME. I MAY PERMIT YOUR ESCAPE",
+   "wickerbottom": "They are known by many names.",
+   "woodie": "This might be a rough one, Luce. Love ya.",
+   "maxwell": "H-hey there, pal... Maxwell here. Big fan of, uh... whatever it is you're doing.",
+   "wigfrid": "At last we meet, accursed öne! My destiny awaits!",
+   "webber": "We're not afraid of you, bully!",
+   "winona": "I'm gonna give you a whuppin' for what you done to Charlie!",
+   "warly": "I would like to wake up from this nightmare.",
+   "wortox": "Mr. Doom 'n' Gloom is in the room!",
+   "wormwood": "Never friend",
+   "wurt": "Florpt, maybe little bit scared.",
+   "walter": "I can't stop staring at it!",
+   "wanda": "Let this be the last time."
+  },
+  "drops": [
+   {
+    "en": "Pure Horror",
+    "qty": "×5-6"
+   },
+   {
+    "en": "Nightmare Fuel",
+    "qty": "×2-3"
+   },
+   {
+    "en": "Dreadstone",
+    "qty": "×4-6"
+   },
+   {
+    "en": "Dark Tatters DST",
+    "qty": "×4-6"
+   },
+   {
+    "en": "Sketch",
+    "qty": ""
+   },
+   {
+    "en": "King's Staff",
+    "qty": ""
+   }
+  ]
+ },
+ "celestial_scion": {
+  "page": "Celestial Scion",
+  "quotes": {
+   "wilson": "Haven't you broken enough science?!",
+   "willow": "What do we do? There's nothing to burn!",
+   "wolfgang": "It is lot for Wolfgang to process!",
+   "wendy": "So much pain.",
+   "wx78": "GLORIOUS!",
+   "wickerbottom": "A curious amalgamation of machine parts and sentient lunar energy.",
+   "woodie": "What in the Aurora Borealis is that?!",
+   "maxwell": "Such grotesquerie.",
+   "wigfrid": "Unhallöwed giant! Ödin wöuld pierce his löne eye at the sight öf thee!",
+   "webber": "Three-legged space spider?",
+   "winona": "It don't make no sense!",
+   "warly": "C'est horrible!",
+   "wortox": "You atrocity of a monstrosity!",
+   "wormwood": "Friend hurting because friend hurting",
+   "wurt": "Why bits of stuff in bright moon stuff want kill me?! Flort, why?!",
+   "walter": "Has anyone asked why it's so upset?",
+   "wanda": "I'll never get used to that!"
+  },
+  "drops": [
+   {
+    "en": "Celestial Jewel",
+    "qty": "×5"
+   },
+   {
+    "en": "Pure Brilliance",
+    "qty": "×5-7"
+   },
+   {
+    "en": "Frazzled Wires",
+    "qty": "×2-3"
+   },
+   {
+    "en": "Gears",
+    "qty": "×1-2"
+   },
+   {
+    "en": "Celestial Scion Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "celestial_revenant": {
+  "page": "Celestial Revenant",
+  "quotes": {
+   "wilson": "You look the same but different.",
+   "willow": "It's burning white hot!",
+   "wolfgang": "Big tough ball back for more Wolfgang punches?",
+   "wendy": "The ball of death burns brighter than ever.",
+   "wx78": "YOU'VE CHANGED",
+   "wickerbottom": "It has returned bursting with lunar energy.",
+   "woodie": "Looks meaner this time eh, Luce?",
+   "maxwell": "It looks nastier than before.",
+   "wigfrid": "Be thy strength fit för the vengeance thöu seek'st?",
+   "webber": "It seems crankier than before!",
+   "winona": "Looks like it's gonna burst.",
+   "warly": "New and improved! C'est terrible!",
+   "wortox": "What's it growing? Why's it glowing?",
+   "wormwood": "Night Ball ball more light?",
+   "wurt": "Florpt. What that new stuff?",
+   "walter": "It's extra glowy isn't it, Woby?",
+   "wanda": "There's something different about you."
+  },
+  "drops": [
+   {
+    "en": "Moon Rock",
+    "qty": "×3-5"
+   },
+   {
+    "en": "Moon Shard",
+    "qty": "×2-5"
+   },
+   {
+    "en": "Infused Moon Shard",
+    "qty": "×2-5"
+   },
+   {
+    "en": "Pure Brilliance",
+    "qty": "×2"
+   }
+  ]
+ },
+ "warbot": {
+  "page": "W.A.R.B.O.T.",
+  "quotes": {
+   "wilson": "How intriguing!",
+   "willow": "What's that pile of junk under there?",
+   "wolfgang": "Wolfgang love a big reveal!",
+   "wendy": "Is it better not to know?",
+   "wx78": "WHO ARE YOU?",
+   "wickerbottom": "Looks like a machine of sorts.",
+   "woodie": "Are you as curious as I am, Luce?",
+   "maxwell": "Nothing but trouble under there if you ask me.",
+   "wigfrid": "What döth he veil fröm us?",
+   "webber": "We love surprises!",
+   "winona": "Bossman's up to somethin' alright.",
+   "warly": "Some sort of centerpiece?",
+   "wortox": "If we know history, better to leave it a mystery.",
+   "wormwood": "What hiding?",
+   "wurt": "Florp! What that? Show me!",
+   "walter": "He's keeping it under wraps!",
+   "wanda": "I've seen what's under there."
+  },
+  "drops": [
+   {
+    "en": "Gears",
+    "qty": "×0-1"
+   },
+   {
+    "en": "Electrical Doodad/DST",
+    "qty": "×0-1"
+   },
+   {
+    "en": "Scrap",
+    "qty": "×1-2"
+   },
+   {
+    "en": "W.A.R.B.O.T. Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "shrouded_queen": {
+  "page": "Charlie/Shrouded Queen",
+  "quotes": {
+   "wilson": "This is bad.",
+   "willow": "You look different... New hair?",
+   "wolfgang": "Remember Wolfgang helped you?",
+   "wendy": "She's lost herself.",
+   "wx78": "HOST CORRUPTED",
+   "wickerbottom": "They have formed an abhorrent triune.",
+   "woodie": "What have we gotten ourselves into, Luce?",
+   "maxwell": "Charlie? Are you still there?",
+   "wigfrid": "Sö it hath cöme tö this, Lady öf Shadöws. Very well... let us clash!",
+   "webber": "We know how you feel! Kinda.",
+   "winona": "I know you're in there, Charlie!",
+   "warly": "How can she be even more terrifying?",
+   "wortox": "Deal is done! Time for fun! Hyuyu!",
+   "wormwood": "How lady is three?",
+   "wurt": "What wrong with scary night lady?",
+   "walter": "Woah. Are you the queen of monsters now, ma'am? Your highness?",
+   "wanda": "She gets worse each time."
+  },
+  "drops": [
+   {
+    "en": "Pure Horror",
+    "qty": "×5-6"
+   },
+   {
+    "en": "Nightmare Fuel",
+    "qty": "×2-3"
+   },
+   {
+    "en": "Shrouded Queen Figure Sketch",
+    "qty": ""
+   }
+  ]
+ },
+ "spider_queen": {
+  "page": "Spider Queen/DST",
+  "quotes": {
+   "wilson": "AHHHHHHHH! That spider is huge!",
+   "willow": "Kill it with fire!",
+   "wolfgang": "Oh no! Walking bug-house!",
+   "wendy": "She is regal in her horribleness.",
+   "wx78": "THE SPIDERS LIVE UNDER A SYSTEM OF MONARCHY",
+   "wickerbottom": "That must be the center of the hive-mind.",
+   "woodie": "You're not MY queen!",
+   "maxwell": "Maybe I'll just get out of her way.",
+   "wigfrid": "Finally, a true test öf my abilities.",
+   "webber": "Mommy-Longlegs?",
+   "winona": "Better stay out of her way.",
+   "warly": "I will not bend the knee to the likes of you!",
+   "wortox": "Your majesty, please don't hurt me!",
+   "wormwood": "Leggy Bug Mommy",
+   "wurt": "She a mighty Queen!",
+   "walter": "I've never heard of spiders having a queen, that's so interesting!",
+   "wanda": "Just whose idea was it to make the spiders here so big?! I'd like to have a word."
+  },
+  "drops": [
+   {
+    "en": "Monster Meat",
+    "qty": "×4"
+   },
+   {
+    "en": "Spiderhat",
+    "qty": ""
+   }
+  ]
+ },
+ "treeguard": {
+  "page": "Treeguard/DST",
+  "quotes": {
+   "wilson": "He's huge!",
+   "willow": "He looks flammable!",
+   "wolfgang": "Wood man!",
+   "wendy": "A lumbering beast.",
+   "wx78": "WARNING: MOBILE TREE",
+   "wickerbottom": "I... don't even know.",
+   "woodie": "I'm sorry aboot all of those trees!",
+   "maxwell": "Disgusting creature!",
+   "wigfrid": "That is an ancient wöodland being.",
+   "webber": "Where did that come from?!",
+   "winona": "The trees have eyes!!",
+   "warly": "I'm out of my element!",
+   "wortox": "No need to fight, my great tree friend!",
+   "wormwood": "Hello!... Hello?",
+   "wurt": "Treebeast!!",
+   "walter": "They've come to take their revenge!",
+   "wanda": "Even the trees are out to get me!"
+  },
+  "drops": [
+   {
+    "en": "Monster Meat",
+    "qty": ""
+   },
+   {
+    "en": "Living Log",
+    "qty": "×6"
+   }
+  ]
+ },
+ "varg": {
+  "page": "Varg",
+  "quotes": {
+   "wilson": "You might be something to reckon with, big dog.",
+   "willow": "You're a big mean jerk!",
+   "wolfgang": "Big puppy!",
+   "wendy": "A true bastion of evil.",
+   "wx78": "IT LIVES TO EAT LARGE THINGS",
+   "wickerbottom": "Domesticating this Canis will be an entertaining challenge.",
+   "woodie": "That thing could pull a sled by its lonesome.",
+   "maxwell": "The alpha!",
+   "wigfrid": "Be that yöu, Fenrir?",
+   "webber": "I don't think that puppy is very happy.",
+   "winona": "Quite the set of chompers on that one.",
+   "warly": "Leader of the pack.",
+   "wortox": "I'll not be a feast for that beast!",
+   "wormwood": "Big Bad Woofer",
+   "wurt": "What big teeth he have!",
+   "walter": "Are they a friend of yours, Woby?",
+   "wanda": "I guess I was bound to run into you sooner or later."
+  },
+  "drops": [
+   {
+    "en": "Hound's Tooth",
+    "qty": "×1-3"
+   }
+  ]
+ },
+ "ewecus": {
+  "page": "Ewecus",
+  "quotes": {
+   "wolfgang": "Look so friendly and cuddly.",
+   "wilson": "What a crusty looking animal.",
+   "willow": "I don't like your face!",
+   "woodie": "Reminds me of momma!",
+   "maxwell": "Ornery and tough as nails.",
+   "wagstaff": "A harsh and phlegmatic creature.",
+   "wendy": "I should put it out of its misery.",
+   "wickerbottom": "Ovis chalybs, and a right mean looking one at that.",
+   "webber": "Maybe it just needs a cuddle!",
+   "wx78": "AT LEAST IT HAS METAL COVERING IT",
+   "wigfrid": "Höw much meat is hiding under there?",
+   "warly": "I do enjoy a good mutton.",
+   "wormwood": "Horkbeast",
+   "winona": "Looks like the old foreman. Ha!",
+   "wortox": "Ptoo to you too!",
+   "wurt": "He not look comfortable, florp.",
+   "walter": "I bet you're really a big softie!",
+   "wanda": "He's a tough old thing."
+  },
+  "drops": [
+   {
+    "en": "Meat",
+    "qty": "×4"
+   },
+   {
+    "en": "Steel Wool",
+    "qty": "×2-3"
+   },
+   {
+    "en": "Phlegm",
+    "qty": "×1-2"
+   },
+   {
+    "en": "Manure",
+    "qty": ""
+   }
+  ]
+ },
+ "krampus": {
+  "page": "Krampus",
+  "quotes": {
+   "wilson": "He's going after my stuff!",
+   "willow": "Stay back, you big jerk!",
+   "wolfgang": "Scary goat man! Run!",
+   "wendy": "Hello, foul creature of the underworld.",
+   "wx78": "STOP! THIEF!",
+   "wickerbottom": "It's a mythological holiday monster.",
+   "woodie": "Back off, hoser!",
+   "maxwell": "You won't catch me!",
+   "wigfrid": "Yöu dön't scare me, göat!",
+   "webber": "Give us back our things!",
+   "winona": "Some sort of... festive devil?",
+   "warly": "What the devil!",
+   "wortox": "Heh heh. No hard feelings?",
+   "wormwood": "Mean Branch Head",
+   "wurt": "Big meanie!!",
+   "walter": "Hey! Did you rifle through my supplies?",
+   "wanda": "He really puts a damper on this time of year."
+  },
+  "drops": [
+   {
+    "en": "Monster Meat",
+    "qty": ""
+   },
+   {
+    "en": "Charcoal",
+    "qty": "×2"
+   },
+   {
+    "en": "Krampus Sack",
+    "qty": ""
+   }
+  ]
+ },
+ "reanimated_skeleton": {
+  "page": "Reanimated Skeleton",
+  "quotes": {
+   "wilson": "The skeleton fused with the shadows!",
+   "willow": "I brought you back so I could beat you up!",
+   "wolfgang": "Skeleton should not be walking!",
+   "wendy": "Not even death is permanent.",
+   "wx78": "YOU WILL BE DESTROYED",
+   "wickerbottom": "A mistake in need of correcting.",
+   "woodie": "It's a walking anatomy lesson.",
+   "maxwell": "There is no limit to the power of shadows.",
+   "wigfrid": "It lives tö battle önce möre!",
+   "webber": "I don't think it's friendly.",
+   "winona": "That thing's terrifying!",
+   "warly": "We should have left it sleeping!",
+   "wortox": "Your mind's not quite right, but neither is mine!",
+   "wormwood": "Branches? Or bones?",
+   "wurt": "Glurph! Has bad shadow magic!",
+   "walter": "A real living skeleton!",
+   "wanda": "This was a bad idea. I have regrets."
+  },
+  "drops": [
+   {
+    "en": "Shadow Atrium",
+    "qty": "×8"
+   }
+  ]
+ }
+}

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Компендиум выжившего — дневник охоты на боссов DST</title>
+<meta name="description" content="Трекер прохождения Don't Starve Together: отмечай убитых боссов, веди хронику побед и следи за прогрессом.">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#128220;</text></svg>">
+</head>
+<body>
+
+<div class="fog" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="bookmark">
+  <div class="bookmark__crest" aria-hidden="true">
+    <svg viewBox="0 0 64 64" width="46" height="46">
+      <path d="M32 4c3 10 8 13 18 13-9 2-14 6-16 15-2-9-7-13-16-15 10 0 15-3 18-13z" fill="currentColor" opacity=".85"/>
+      <circle cx="32" cy="46" r="7" fill="none" stroke="currentColor" stroke-width="2.4"/>
+      <path d="M14 58h36" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="bookmark__titles">
+    <h1>Компендиум выжившего</h1>
+    <p>Дневник охоты на чудовищ&nbsp;&middot; Don't Starve Together</p>
+  </div>
+  <div class="bookmark__actions">
+    <div class="bookmark__run" id="run-now" hidden>
+      <img id="run-now-img" alt="">
+      <span class="bookmark__run-body">
+        <span class="bookmark__run-name" id="run-now-name"></span>
+        <span class="bookmark__run-char" id="run-now-char"></span>
+      </span>
+    </div>
+    <button class="btn btn--ghost btn--sync" id="btn-sync" title="Подключиться к игре через tools/bridge.py" aria-pressed="false">
+      <span class="btn__dot" aria-hidden="true"></span>Игра
+    </button>
+    <button class="btn btn--ghost" id="btn-runs" title="Сменить или создать забег">Забеги</button>
+    <button class="btn btn--ghost" id="btn-export" title="Скачать файл с прогрессом">Выгрузить</button>
+    <button class="btn btn--ghost" id="btn-import" title="Загрузить прогресс из файла">Загрузить</button>
+    <button class="btn btn--ghost btn--danger" id="btn-reset" title="Стереть прогресс забега">Сжечь</button>
+    <input type="file" id="file-input" accept="application/json,.json" hidden>
+  </div>
+</header>
+
+<div class="book">
+
+  <nav class="tabs" id="tabs" aria-label="Разделы компендиума">
+    <!-- кнопки-вкладки рисует app.js -->
+  </nav>
+
+  <main class="pages">
+
+    <section class="leaf leaf--head">
+      <div class="leaf__ornament" aria-hidden="true"></div>
+
+      <div class="head-row">
+        <div class="head-row__title">
+          <h2 id="section-title">Все чудовища</h2>
+          <p id="section-hint">Записи открываются по мере охоты</p>
+        </div>
+        <div class="progress">
+          <div class="progress__numbers">
+            <span id="progress-count">0 / 0</span>
+            <span id="progress-percent">0%</span>
+          </div>
+          <div class="progress__bar"><i id="progress-fill" style="width:0%"></i></div>
+          <div class="progress__caption" id="progress-caption">Ни одно чудовище не повержено</div>
+        </div>
+      </div>
+
+      <div class="toolbar" id="toolbar">
+        <label class="search">
+          <span class="search__icon" aria-hidden="true">&#9906;</span>
+          <input type="search" id="search" placeholder="Найти чудовище&hellip;" autocomplete="off">
+        </label>
+        <div class="chips" id="filters">
+          <button class="chip is-on" data-filter="all">Все</button>
+          <button class="chip" data-filter="killed">Побеждённые</button>
+          <button class="chip" data-filter="alive">Ещё живы</button>
+        </div>
+        <label class="switch" title="Показывать рисунок непобеждённых чудовищ">
+          <input type="checkbox" id="opt-silhouettes" checked>
+          <span class="switch__box"></span>
+          <span class="switch__label">Силуэты</span>
+        </label>
+      </div>
+    </section>
+
+    <section id="grid" class="grid" aria-live="polite"></section>
+
+    <section id="empty" class="empty" hidden>
+      <div class="empty__mark">?</div>
+      <p>На этой странице пусто. Записи появляются здесь, когда их находит охотник.</p>
+    </section>
+
+  </main>
+</div>
+
+<footer class="colophon">
+  <p>Прогресс хранится только в этом браузере. Не забудь <button class="link" id="btn-export2">выгрузить</button> его на всякий случай.</p>
+  <p class="colophon__fan">Фанатский проект. Don't Starve Together &copy; Klei Entertainment. &middot; <span class="colophon__version" id="app-version">v1.0.0</span></p>
+</footer>
+
+<!-- Страница «Создать забег» -->
+<div class="start" id="start" hidden>
+  <div class="start__backdrop"></div>
+  <div class="start__page" role="dialog" aria-modal="true" aria-labelledby="start-title">
+    <div class="entry__ornament" aria-hidden="true"></div>
+    <div class="start__body" id="start-body"></div>
+  </div>
+</div>
+
+<!-- Страница записи -->
+<div class="entry" id="entry" hidden>
+  <div class="entry__backdrop" data-close></div>
+  <article class="entry__page" role="dialog" aria-modal="true" aria-labelledby="entry-name">
+    <div class="entry__ornament" aria-hidden="true"></div>
+    <button class="entry__close" data-close aria-label="Закрыть запись">&times;</button>
+    <button class="entry__nav entry__nav--prev" id="entry-prev" aria-label="Предыдущая запись">&#8249;</button>
+    <button class="entry__nav entry__nav--next" id="entry-next" aria-label="Следующая запись">&#8250;</button>
+    <div class="entry__body" id="entry-body"></div>
+  </article>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/data.js"></script>
+<script src="js/skills.js"></script>
+<script src="js/version.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

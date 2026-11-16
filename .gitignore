@@ -1,0 +1,14 @@
+# служебное
+graphify-out/
+__pycache__/
+*.pyc
+_check.html
+_check2.html
+_shot.html
+_c1.html
+_c2.html
+_c3.html
+.DS_Store
+
+# кэш вики-текста (не нужен для сайта)
+tools/raw/
