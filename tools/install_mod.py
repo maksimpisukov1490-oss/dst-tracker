@@ -4,7 +4,7 @@
 
 Ищет Don't Starve Together в библиотеках Steam и копирует dst-tracker-mod
 в <игра>/mods/dst-tracker-sync. Дальше мод включается в игре:
-«Моды» → вкладка серверных модов → DST Compendium Sync.
+«Моды» → DST Compendium Sync (для кнопки в паузе — и в клиентских модах).
 
 Запуск:
     python3 tools/install_mod.py --dry-run
@@ -117,7 +117,7 @@ def main() -> int:
 
     sync_base = sync_base_hint(game)
     print("Готово. Дальше:")
-    print("  1) В игре: «Моды» → серверные моды → включить «DST Compendium Sync».")
+    print("  1) В игре: «Моды» → включить «DST Compendium Sync» (для кнопки в паузе — и в клиентских модах).")
     print("     Для мира с пещерами включи мод на обоих шардах (лес и пещеры).")
     print(f"  2) Запусти мост:  python3 tools/bridge.py")
     print(f"  3) На сайте нажми кнопку «Игра».")
