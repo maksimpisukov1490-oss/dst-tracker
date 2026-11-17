@@ -73,7 +73,8 @@ body{
 .bookmark__titles p{
   margin:2px 0 0; color:#9b8a6b; font-size:15px; letter-spacing:.6px;
 }
-.bookmark__actions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.bookmark__actions{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.bookmark__actions .btn{ padding:7px 10px; font-size:14px; }
 
 /* --- кнопки ------------------------------------------------ */
 .btn{

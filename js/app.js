@@ -48,6 +48,8 @@
     runNowChar: document.getElementById('run-now-char'),
     toast: document.getElementById('toast'),
     fileInput: document.getElementById('file-input'),
+    syncFileInput: document.getElementById('sync-file-input'),
+    file: document.getElementById('btn-file'),
     sync: document.getElementById('btn-sync')
   };
 
@@ -1492,6 +1494,10 @@
   var SYNC_EVERY = 5000;
 
   state.sync = { on: false, busy: false, fails: 0, timer: null, world: null };
+  state.file = {
+    on: false, busy: false, timer: null, handles: null,
+    world: null, stale: false, remembered: false
+  };
 
   function syncFetch() {
     return new Promise(function (resolve, reject) {
@@ -1837,6 +1843,7 @@
       stopSync('Отключено от игры');
       return;
     }
+    if (state.file.on) stopFileSync();
     if (state.sync.busy) return;
     state.sync.busy = true;
     state.sync.fails = 0;
@@ -1882,6 +1889,382 @@
 
   els.sync.addEventListener('click', toggleSync);
 
+  /* ---------- прямое чтение файла синхронизации (без моста) ---------- */
+
+  var FILE_DB = 'dst-tracker-files';
+  var FILE_STORE = 'handles';
+  var FILE_EVERY = 5000;
+  var FILE_STALE = 120;
+  var SYNC_FILE_NAMES = [
+    'dst-tracker-sync.json',
+    'dst-tracker-sync-caves.json',
+    'dst_tracker_sync_forest',
+    'dst_tracker_sync_caves'
+  ];
+
+  function idbOpen() {
+    return new Promise(function (resolve, reject) {
+      if (!window.indexedDB) { reject(new Error('indexedDB unavailable')); return; }
+      var req = indexedDB.open(FILE_DB, 1);
+      req.onupgradeneeded = function () {
+        var db = req.result;
+        if (!db.objectStoreNames.contains(FILE_STORE)) db.createObjectStore(FILE_STORE);
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+
+  function idbGet(key) {
+    return idbOpen().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(FILE_STORE, 'readonly');
+        var req = tx.objectStore(FILE_STORE).get(key);
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error); };
+      });
+    });
+  }
+
+  function idbSet(key, value) {
+    return idbOpen().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(FILE_STORE, 'readwrite');
+        tx.objectStore(FILE_STORE).put(value, key);
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    });
+  }
+
+  function syncFileText(text) {
+    var t = String(text || '').trim();
+    if (t.slice(0, 4) === 'KLEI') t = t.slice(4).trim();
+    return t;
+  }
+
+  function parseSyncRecords(files) {
+    var records = [];
+    (files || []).forEach(function (f) {
+      try {
+        var rec = JSON.parse(syncFileText(f.text));
+        if (rec && rec.app === 'dst-compendium') records.push(rec);
+      } catch (e) { /* не файл синхронизации */ }
+    });
+    return records;
+  }
+
+  function mergeKillsJs(records) {
+    var merged = {};
+    records.forEach(function (rec) {
+      var kills = rec.kills || {};
+      Object.keys(kills).forEach(function (slug) {
+        var k = kills[slug];
+        if (!k || typeof k !== 'object') return;
+        var count = parseInt(k.count, 10) || 0;
+        var time = parseInt(k.time, 10) || 0;
+        var day = parseInt(k.day, 10) || 0;
+        var cur = merged[slug];
+        if (!cur) {
+          merged[slug] = {
+            count: count,
+            date: typeof k.date === 'string' ? k.date : '',
+            time: time,
+            day: day
+          };
+          return;
+        }
+        if (count > cur.count || (count === cur.count && time > cur.time)) {
+          cur.count = Math.max(cur.count, count);
+          if (k.date) cur.date = k.date;
+          cur.time = Math.max(cur.time, time);
+          if (day) cur.day = day;
+        } else if (day && !cur.day) {
+          cur.day = day;
+        }
+      });
+    });
+    return merged;
+  }
+
+  function buildDirectData(records) {
+    if (!records.length) return null;
+    records.sort(function (a, b) {
+      return (parseInt(b.updated_at, 10) || 0) - (parseInt(a.updated_at, 10) || 0);
+    });
+    var latest = records[0];
+    var updated = parseInt(latest.updated_at, 10) || 0;
+    var age = updated ? Math.max(0, Math.floor(Date.now() / 1000) - updated) : 0;
+    var marks = {};
+    var retro = {};
+    records.forEach(function (rec) {
+      Object.keys(rec.marks || {}).forEach(function (id) {
+        if (rec.marks[id]) marks[id] = true;
+      });
+      Object.keys(rec.retro || {}).forEach(function (slug) {
+        var n = parseInt(rec.retro[slug], 10) || 0;
+        if (n > (retro[slug] || 0)) retro[slug] = n;
+      });
+    });
+    var skills = null;
+    records.forEach(function (rec) {
+      if (!skills && rec.skills && rec.skills.char) skills = rec.skills;
+    });
+    return {
+      connected: true,
+      direct: true,
+      online: age <= FILE_STALE,
+      age: age,
+      updated_at: updated,
+      world: latest.world || {},
+      skills: skills,
+      kills: mergeKillsJs(records),
+      marks: marks,
+      retro: retro,
+      shard_state: records.map(function (rec) {
+        return {
+          shard: rec.shard || '',
+          session: parseInt(rec.session, 10) || 0,
+          updated_at: parseInt(rec.updated_at, 10) || 0,
+          kills: rec.kills || {}
+        };
+      })
+    };
+  }
+
+  function readHandles(handles) {
+    var out = [];
+    var list = handles || [];
+    var chain = Promise.resolve();
+    list.forEach(function (handle) {
+      chain = chain.then(function () {
+        if (!handle) return;
+        if (handle.kind === 'file') {
+          return handle.getFile().then(function (file) {
+            return file.text().then(function (text) {
+              out.push({ name: handle.name || file.name || 'sync.json', text: text });
+            });
+          });
+        }
+        var names = SYNC_FILE_NAMES;
+        var walk = function (dir, depth) {
+          var iterator = dir.values();
+          var next = function () {
+            return iterator.next().then(function (res) {
+              if (res.done) return;
+              var entry = res.value;
+              if (entry.kind === 'file' && names.indexOf(entry.name) >= 0) {
+                return entry.getFile().then(function (file) {
+                  return file.text().then(function (text) {
+                    out.push({ name: entry.name, text: text });
+                    return next();
+                  });
+                });
+              }
+              if (entry.kind === 'directory' && depth < 2) {
+                return walk(entry, depth + 1).then(next);
+              }
+              return next();
+            });
+          };
+          return next();
+        };
+        return walk(handle, 0);
+      });
+    });
+    return chain.then(function () { return out; });
+  }
+
+  function readInputFiles(input) {
+    var files = Array.prototype.slice.call((input && input.files) || []);
+    return Promise.all(files.map(function (file) {
+      return file.text().then(function (text) {
+        return { name: file.name, text: text };
+      });
+    }));
+  }
+
+  function renderFileBtn() {
+    var b = els.file;
+    if (!b) return;
+    b.classList.toggle('is-on', state.file.on && !state.file.stale);
+    b.classList.toggle('is-err', state.file.on && state.file.stale);
+    b.classList.toggle('is-busy', state.file.busy);
+    b.setAttribute('aria-pressed', state.file.on ? 'true' : 'false');
+    var title = 'Подключить файл сохранения игры напрямую — без моста';
+    if (state.file.on) {
+      title = 'Файл игры подключён';
+      if (state.file.world) title += ' · день ' + (state.file.world.day || '?');
+      if (state.file.stale) title += ' · данные устарели';
+    } else if (state.file.remembered) {
+      title = 'Нажми, чтобы разрешить чтение сохранённой папки';
+    }
+    b.title = title;
+  }
+
+  function stopFileSync(msg) {
+    state.file.on = false;
+    state.file.busy = false;
+    if (state.file.timer) {
+      clearInterval(state.file.timer);
+      state.file.timer = null;
+    }
+    renderFileBtn();
+    if (msg) toast(msg);
+  }
+
+  function pollFileSync(initial, silent) {
+    if (!state.file.on || state.file.busy) return;
+    state.file.busy = true;
+    renderFileBtn();
+    readHandles(state.file.handles).then(function (files) {
+      state.file.busy = false;
+      if (!files.length) {
+        state.file.stale = true;
+        renderFileBtn();
+        if (initial && !silent) toast('В выбранной папке нет файла синхронизации мода');
+        return;
+      }
+      var data = buildDirectData(parseSyncRecords(files));
+      if (!data) {
+        state.file.stale = true;
+        renderFileBtn();
+        if (initial && !silent) toast('Файл найден, но это не файл синхронизации мода');
+        return;
+      }
+      state.file.world = data.world;
+      state.file.stale = !data.online;
+      if (!data.online) {
+        renderFileBtn();
+        if (initial && !silent) toast('Файл найден, но данные устарели — зайди в мир');
+        return;
+      }
+      var res = applySync(data, initial ? true : false);
+      renderFileBtn();
+      if (initial && !silent) {
+        var w = data.world || {};
+        toast('Файл игры подключён' + (w.day ? ' · день ' + w.day : '') +
+          (res && res.run && !res.current ? ' · данные идут в забег «' + res.run.name + '»' : ''));
+      }
+    }).catch(function (err) {
+      state.file.busy = false;
+      state.file.stale = true;
+      renderFileBtn();
+      if (err && err.name === 'NotAllowedError') {
+        stopFileSync('Нет доступа к файлу — нажми «Файл» и разреши чтение');
+      } else if (initial && !silent) {
+        toast('Не удалось прочитать файл: ' + (err && err.message ? err.message : err));
+      }
+    });
+  }
+
+  function startFileSync(handles, label, silent) {
+    if (!handles || !handles.length) return;
+    stopSync();
+    stopFileSync();
+    state.file.handles = handles;
+    state.file.on = true;
+    state.file.stale = false;
+    state.file.world = null;
+    state.file.remembered = false;
+    idbSet('sync', handles).catch(function () { /* приватный режим */ });
+    renderFileBtn();
+    pollFileSync(true, silent);
+    state.file.timer = setInterval(function () { pollFileSync(false); }, FILE_EVERY);
+  }
+
+  function openFilePicker() {
+    if (window.showDirectoryPicker) {
+      window.showDirectoryPicker({ id: 'dst-tracker-sync', mode: 'read' }).then(function (handle) {
+        startFileSync([handle], handle.name);
+      }).catch(function (err) {
+        if (err && err.name !== 'AbortError') {
+          toast('Не удалось открыть папку: ' + (err.message || err));
+        }
+      });
+      return;
+    }
+    if (window.showOpenFilePicker) {
+      window.showOpenFilePicker({
+        multiple: true,
+        types: [{ description: 'Синхронизация DST', accept: { 'application/json': ['.json'] } }]
+      }).then(function (handles) {
+        if (handles && handles.length) startFileSync(handles, handles[0].name);
+      }).catch(function (err) {
+        if (err && err.name !== 'AbortError') {
+          toast('Не удалось открыть файл: ' + (err.message || err));
+        }
+      });
+      return;
+    }
+    if (els.syncFileInput) {
+      els.syncFileInput.value = '';
+      els.syncFileInput.click();
+    } else {
+      toast('Браузер не поддерживает прямое чтение файла — используй мост');
+    }
+  }
+
+  function toggleFileSync() {
+    if (state.file.on) {
+      stopFileSync('Файл отключён');
+      return;
+    }
+    if (state.file.busy) return;
+    if (state.file.remembered && state.file.handles && state.file.handles.length) {
+      var first = state.file.handles[0];
+      if (first && first.requestPermission) {
+        first.requestPermission({ mode: 'read' }).then(function (perm) {
+          if (perm === 'granted') startFileSync(state.file.handles, first.name || '');
+          else openFilePicker();
+        }).catch(function () { openFilePicker(); });
+        return;
+      }
+    }
+    openFilePicker();
+  }
+
+  function readFallbackSyncFiles() {
+    readInputFiles(els.syncFileInput).then(function (files) {
+      var data = buildDirectData(parseSyncRecords(files));
+      if (!data) { toast('Это не файл синхронизации мода'); return; }
+      if (!data.online) { toast('Данные устарели — зайди в мир'); return; }
+      stopSync();
+      var res = applySync(data, true);
+      state.file.world = data.world;
+      state.file.stale = false;
+      state.file.on = false;
+      renderFileBtn();
+      toast('Файл прочитан' + (data.world.day ? ' · день ' + data.world.day : '') +
+        (res && res.run && !res.current ? ' · забег «' + res.run.name + '»' : ''));
+    }).catch(function (err) {
+      toast('Не удалось прочитать файл: ' + (err && err.message ? err.message : err));
+    });
+  }
+
+  function restoreFileHandles() {
+    idbGet('sync').then(function (handles) {
+      if (!handles || !handles.length) return;
+      state.file.handles = handles;
+      var first = handles[0];
+      if (!first || !first.queryPermission) return;
+      first.queryPermission({ mode: 'read' }).then(function (perm) {
+        if (perm === 'granted') {
+          startFileSync(handles, first.name || '', true);
+        } else {
+          state.file.remembered = true;
+          renderFileBtn();
+        }
+      }).catch(function () {});
+    }).catch(function () {});
+  }
+
+  els.file.addEventListener('click', toggleFileSync);
+  if (els.syncFileInput) {
+    els.syncFileInput.addEventListener('change', readFallbackSyncFiles);
+  }
+
+
   /* ---------- старт ---------- */
 
   load();
@@ -1892,6 +2275,8 @@
   renderAll();
   updateRunBadge();
   renderSyncBtn();
+  renderFileBtn();
+  restoreFileHandles();
   var versionEl = document.getElementById('app-version');
   if (versionEl) {
     versionEl.textContent = 'v' + APP_VERSION;

@@ -3,6 +3,16 @@
 Формат: [Semantic Versioning](https://semver.org/lang/ru/).
 `MAJOR` — несовместимые изменения, `MINOR` — новые возможности, `PATCH` — исправления.
 
+## [1.5.0] — 2026-11-17
+
+### Добавлено
+- Прямое чтение файла синхронизации **без моста**: кнопка **«Файл»** в шапке.
+  Сайт через File System Access API запоминает папку `DoNotStarveTogether` и
+  перечитывает `dst-tracker-sync.json` / `-caves.json` раз в 5 секунд.
+  Поддержаны также `client_save/dst_tracker_sync_*` и разовый выбор файла
+  в браузерах без File System Access API.
+- Мост `tools/bridge.py` остаётся запасным вариантом — кнопка **«Игра»**.
+
 ## [1.3.0] — 2026-11-16
 
 ### Добавлено
