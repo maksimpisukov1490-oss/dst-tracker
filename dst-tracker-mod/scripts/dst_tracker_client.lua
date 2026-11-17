@@ -32,6 +32,10 @@ local CONTROL_MOVE_UP = G.CONTROL_MOVE_UP or 5
 local CONTROL_MOVE_DOWN = G.CONTROL_MOVE_DOWN or 6
 local CONTROL_MOVE_LEFT = G.CONTROL_MOVE_LEFT or 7
 local CONTROL_MOVE_RIGHT = G.CONTROL_MOVE_RIGHT or 8
+local MOVE_UP = G.MOVE_UP or 1
+local MOVE_DOWN = G.MOVE_DOWN or 2
+local MOVE_LEFT = G.MOVE_LEFT or 3
+local MOVE_RIGHT = G.MOVE_RIGHT or 4
 local CONTROL_SCROLLBACK = G.CONTROL_SCROLLBACK or 31
 local CONTROL_SCROLLFWD = G.CONTROL_SCROLLFWD or 32
 local CONTROL_MENU_L2 = G.CONTROL_MENU_L2 or 85
@@ -516,15 +520,18 @@ function DSTTrackerScreen:MakeCard(slug, x, y, index)
         local icon = card:AddChild(Image(atlas, tex))
         icon:SetSize(70, 70)
         icon:SetPosition(0, 20, 0)
+        icon:SetClickable(false)
     else
         local q = card:AddChild(Text(CHATFONT, 36, "?", on and INK or INK_SOFT))
         q:SetPosition(0, 20, 0)
+        q:SetClickable(false)
     end
 
     local name = card:AddChild(Text(CHATFONT, 16, "", on and INK or INK_SOFT))
     name:SetPosition(0, -32, 0)
     name:SetHAlign(ANCHOR_MIDDLE)
     name:SetTruncatedString((data and data.name) or slug, CARD_W - 16, nil, true)
+    name:SetClickable(false)
 
     local status = card:AddChild(Text(CHATFONT, 11, "", on and INK_SOFT or { 0.30, 0.27, 0.23, 1 }))
     status:SetPosition(0, -52, 0)
@@ -537,6 +544,7 @@ function DSTTrackerScreen:MakeCard(slug, x, y, index)
     else
         status:SetString("не побеждён")
     end
+    status:SetClickable(false)
 
     return card
 end
@@ -567,16 +575,16 @@ function DSTTrackerScreen:BuildGrid()
         local row = math.floor((idx - 1) / COLS)
         local col = (idx - 1) % COLS
         if col > 0 and self.cards[idx - 1] then
-            card:SetFocusChangeDir(CONTROL_MOVE_LEFT, self.cards[idx - 1])
+            card:SetFocusChangeDir(MOVE_LEFT, self.cards[idx - 1])
         end
         if col < COLS - 1 and self.cards[idx + 1] then
-            card:SetFocusChangeDir(CONTROL_MOVE_RIGHT, self.cards[idx + 1])
+            card:SetFocusChangeDir(MOVE_RIGHT, self.cards[idx + 1])
         end
         if row > 0 and self.cards[idx - COLS] then
-            card:SetFocusChangeDir(CONTROL_MOVE_UP, self.cards[idx - COLS])
+            card:SetFocusChangeDir(MOVE_UP, self.cards[idx - COLS])
         end
         if self.cards[idx + COLS] then
-            card:SetFocusChangeDir(CONTROL_MOVE_DOWN, self.cards[idx + COLS])
+            card:SetFocusChangeDir(MOVE_DOWN, self.cards[idx + COLS])
         end
     end
 

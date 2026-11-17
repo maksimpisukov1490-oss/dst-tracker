@@ -43,6 +43,7 @@ local function widget_class(name)
     end
     c.SetFocus = function() end
     c.SetFocusChangeDir = function() end
+    c.SetClickable = function() end
     c.SetScaleMode = function(self, v) self.scalemode = v end
     c.SetTint = function(self, r, g, b, a) self.tint = { r, g, b, a } end
     c.SetVRegPoint = function() end
@@ -110,6 +111,7 @@ local env = {
     CONTROL_MOVE_LEFT = 7, CONTROL_MOVE_RIGHT = 8,
     CONTROL_SCROLLBACK = 31, CONTROL_SCROLLFWD = 32,
     CONTROL_MENU_L2 = 85, CONTROL_MENU_R2 = 86,
+    MOVE_UP = 1, MOVE_DOWN = 2, MOVE_LEFT = 3, MOVE_RIGHT = 4,
     BOSS_ORDER = { "deerclops", "bearger" },
     BOSS_NAMES = { deerclops = "Циклоп-олень", bearger = "Медведь-барсук" },
     BOSS_CATEGORIES = {
