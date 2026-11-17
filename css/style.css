@@ -274,17 +274,77 @@ body{
   color:var(--ink);
   box-shadow: inset 0 0 40px rgba(88,60,28,.3), 0 10px 22px rgba(0,0,0,.5);
   transition: transform .16s cubic-bezier(.2,.7,.2,1), box-shadow .16s;
+  --theme-tex: url('../assets/items/gold_nugget.png');
+  --theme-glow: rgba(184,145,47,.45);
+  --theme-edge: #b8912f;
+  --theme-soft: rgba(184,145,47,.2);
+}
+.card.theme-lunar{
+  --theme-tex:url('../assets/items/moon_rock.png'); --theme-glow:rgba(150,205,245,.55);
+  --theme-edge:#a9d3ef; --theme-soft:rgba(150,205,245,.22);
+}
+.card.theme-shadow{
+  --theme-tex:url('../assets/items/nightmare_fuel.png'); --theme-glow:rgba(150,80,220,.55);
+  --theme-edge:#9a6ad8; --theme-soft:rgba(150,80,220,.22);
+}
+.card.theme-fire{
+  --theme-tex:url('../assets/items/red_gem.png'); --theme-glow:rgba(235,110,45,.55);
+  --theme-edge:#e8894a; --theme-soft:rgba(235,110,45,.22);
+}
+.card.theme-ice{
+  --theme-tex:url('../assets/items/ice.png'); --theme-glow:rgba(120,190,235,.55);
+  --theme-edge:#8fc9e8; --theme-soft:rgba(120,190,235,.22);
+}
+.card.theme-poison{
+  --theme-tex:url('../assets/items/green_gem.png'); --theme-glow:rgba(120,200,80,.55);
+  --theme-edge:#8fce62; --theme-soft:rgba(120,200,80,.22);
+}
+.card.theme-ocean{
+  --theme-tex:url('../assets/items/malbatross_feather.png'); --theme-glow:rgba(80,190,190,.55);
+  --theme-edge:#72c9c9; --theme-soft:rgba(80,190,190,.22);
+}
+.card.theme-nature{
+  --theme-tex:url('../assets/items/living_log.png'); --theme-glow:rgba(130,170,70,.5);
+  --theme-edge:#94b45a; --theme-soft:rgba(130,170,70,.2);
+}
+.card.theme-mech{
+  --theme-tex:url('../assets/items/gears.png'); --theme-glow:rgba(200,180,100,.5);
+  --theme-edge:#c9b26a; --theme-soft:rgba(200,180,100,.2);
+}
+.card.theme-blood{
+  --theme-tex:url('../assets/items/spiderhat.png'); --theme-glow:rgba(200,60,70,.55);
+  --theme-edge:#c95a62; --theme-soft:rgba(200,60,70,.22);
+}
+.card.theme-ruins{
+  --theme-tex:url('../assets/items/thulecite.png'); --theme-glow:rgba(190,160,70,.55);
+  --theme-edge:#c9a84a; --theme-soft:rgba(190,160,70,.22);
+}
+.card.theme-beast{
+  --theme-tex:url('../assets/items/thick_fur.png'); --theme-glow:rgba(170,120,70,.5);
+  --theme-edge:#b88a58; --theme-soft:rgba(170,120,70,.2);
+}
+.card.theme-neutral{
+  --theme-tex:url('../assets/items/gold_nugget.png'); --theme-glow:rgba(184,145,47,.45);
+  --theme-edge:#b8912f; --theme-soft:rgba(184,145,47,.2);
 }
 .card::after{
   content:''; position:absolute; inset:0; pointer-events:none; border-radius:var(--radius);
   border:1px solid rgba(122,85,40,.6);
   box-shadow: inset 0 0 0 5px rgba(122,85,40,.18);
 }
-.card:hover{ transform:translateY(-5px) rotate(-.35deg); box-shadow: inset 0 0 40px rgba(88,60,28,.3), 0 18px 34px rgba(0,0,0,.62); }
-.card:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
+.card:hover{
+  transform:translateY(-5px) rotate(-.35deg);
+  box-shadow: inset 0 0 40px var(--theme-glow), 0 18px 34px rgba(0,0,0,.62), 0 0 26px var(--theme-glow);
+}
+.card:focus-visible{ outline:2px solid var(--theme-edge); outline-offset:3px; }
+.card:hover::after,
+.card:focus-visible::after{
+  border-color:var(--theme-edge);
+  box-shadow: inset 0 0 0 5px var(--theme-soft), inset 0 0 24px var(--theme-glow);
+}
 
 .card__cat{
-  position:absolute; top:8px; left:8px; z-index:2;
+  position:absolute; top:8px; left:8px; z-index:4;
   font-size:11px; letter-spacing:.9px; text-transform:uppercase;
   color:#5c4526; background:rgba(233,219,188,.82);
   border:1px solid rgba(122,85,40,.45); border-radius:9px; padding:2px 7px;
@@ -293,36 +353,24 @@ body{
   position:relative; height:186px; display:flex; align-items:flex-end; justify-content:center;
   padding:10px 8px 0;
 }
+.card__aura{
+  position:absolute; inset:-6px; z-index:2; pointer-events:none; border-radius:var(--radius);
+  background-image:var(--theme-tex); background-size:34px 34px; background-position:center;
+  opacity:0; transition:opacity .25s ease;
+  filter:drop-shadow(0 0 5px var(--theme-glow));
+  -webkit-mask:radial-gradient(ellipse at center, transparent 64%, #000 86%);
+  mask:radial-gradient(ellipse at center, transparent 64%, #000 86%);
+}
+.card:hover .card__aura,
+.card:focus-visible .card__aura{ opacity:.92; }
 .card__art img{
+  position:relative; z-index:1;
   max-width:100%; max-height:100%; object-fit:contain;
   filter: drop-shadow(0 6px 10px rgba(60,40,15,.45));
   transition: filter .35s, transform .35s, opacity .35s;
 }
-.card:hover .card__art img,
-.card:focus-visible .card__art img{ transform:scale(1.06); }
 .card.is-locked .card__art img{ filter:brightness(0) saturate(0) opacity(.72) drop-shadow(0 6px 10px rgba(60,40,15,.35)); }
-.card.is-locked:hover .card__art img,
-.card.is-locked:focus-visible .card__art img{ filter:brightness(.35) saturate(.4) opacity(.9); }
-
-/* выдержка из компендиума, всплывающая на карточке */
-.card__lore{
-  position:absolute; left:0; right:0; bottom:0; z-index:2;
-  padding:34px 12px 10px; text-align:left; pointer-events:none;
-  background:linear-gradient(rgba(18,12,7,0) 0%, rgba(18,12,7,.82) 36%, rgba(18,12,7,.95) 100%);
-  opacity:0; transform:translateY(8px);
-  transition:opacity .2s ease, transform .2s ease;
-}
-.card:hover .card__lore,
-.card:focus-visible .card__lore{ opacity:1; transform:translateY(0); }
-.card__lore-label{
-  display:block; margin-bottom:3px; font-size:9.5px; letter-spacing:1.1px;
-  text-transform:uppercase; color:#d9b45a;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-.card__lore-text{
-  display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;
-  font-size:11.5px; line-height:1.35; color:#efe3c6;
-}
+.card.is-locked:hover .card__art img{ filter:brightness(.35) saturate(.4) opacity(.9); }
 .card__noart{
   width:96px; height:120px; display:flex; align-items:center; justify-content:center;
   font-family:var(--font-script); font-size:64px; color:rgba(60,40,18,.35);
@@ -331,6 +379,12 @@ body{
   position:relative; padding:9px 12px 12px;
   border-top:1px dashed rgba(122,85,40,.55);
   background: linear-gradient(rgba(255,250,235,.35), rgba(200,180,140,.35));
+  transition: border-color .25s, box-shadow .25s;
+}
+.card:hover .card__plate,
+.card:focus-visible .card__plate{
+  border-top-color:var(--theme-edge);
+  box-shadow: inset 0 10px 18px -14px var(--theme-glow);
 }
 .card__name{
   font-family:var(--font-script); font-weight:700; font-size:23px; line-height:1.05;
@@ -342,7 +396,7 @@ body{
 
 /* печать «побеждён» */
 .stamp{
-  position:absolute; top:10px; right:10px; z-index:3;
+  position:absolute; top:10px; right:10px; z-index:5;
   width:74px; height:74px; border-radius:50%;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   transform: rotate(-14deg); pointer-events:none;

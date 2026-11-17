@@ -455,20 +455,52 @@
     });
   }
 
-  function loreExcerpt(b) {
-    var t = (b.lore || '').trim();
-    if (!t) return '';
-    var m = t.match(/^[^.!?]+[.!?]/);
-    var s = m ? m[0] : t;
-    if (s.length > 118) {
-      s = s.slice(0, 115).replace(/\s+\S*$/, '') + '…';
-    }
-    return s;
+  // Тема виньетки при наведении: лунный камень, топливо ужаса, лёд, огонь и т.д.
+  var BOSS_THEMES = {
+    deerclops: 'ice',
+    bearger: 'nature',
+    moose_goose: 'nature',
+    dragonfly: 'fire',
+    bee_queen: 'blood',
+    klaus: 'neutral',
+    toadstool: 'poison',
+    antlion: 'nature',
+    malbatross: 'ocean',
+    crab_king: 'ocean',
+    ancient_fuelweaver: 'shadow',
+    celestial_champion: 'lunar',
+    eye_of_terror: 'shadow',
+    twins_of_terror: 'shadow',
+    shadow_pieces: 'shadow',
+    nightmare_werepig: 'shadow',
+    scrappy_werepig: 'mech',
+    frostjaw: 'ice',
+    lord_of_the_fruit_flies: 'poison',
+    ancient_guardian: 'ruins',
+    great_depths_worm: 'beast',
+    ancient_guard_tower: 'ruins',
+    armored_bearger: 'shadow',
+    crystal_deerclops: 'lunar',
+    possessed_varg: 'shadow',
+    umbral_abomination: 'shadow',
+    celestial_scion: 'lunar',
+    celestial_revenant: 'lunar',
+    warbot: 'mech',
+    shrouded_queen: 'shadow',
+    spider_queen: 'blood',
+    treeguard: 'nature',
+    varg: 'beast',
+    ewecus: 'beast',
+    krampus: 'beast',
+    reanimated_skeleton: 'ruins'
+  };
+
+  function themeOf(slug) {
+    return BOSS_THEMES[slug] || 'neutral';
   }
 
   function cardHtml(b) {
     var k = kill(b.slug);
-    var lore = loreExcerpt(b);
     var killed = k.count > 0;
     var locked = !killed && state.silhouettes;
     var img = art(b);
@@ -476,17 +508,14 @@
       ? '<div class="stamp stamp--small"><span>Побеждён</span><em>' +
         (k.date ? esc(fmtDate(k.date)) : '') + '</em></div>'
       : '';
-    return '<button class="card' + (locked ? ' is-locked' : '') + '" data-slug="' + b.slug + '" ' +
+    return '<button class="card theme-' + themeOf(b.slug) + (locked ? ' is-locked' : '') + '" data-slug="' + b.slug + '" ' +
       'aria-label="' + esc(b.name_ru) + (killed ? ' — побеждён' : ' — ещё не побеждён') + '">' +
       '<span class="card__cat">' + esc(catOf(b.category).short || catOf(b.category).name) + '</span>' +
       stamp +
       '<span class="card__art">' +
+      '<span class="card__aura" aria-hidden="true"></span>' +
       (img ? '<img src="' + img + '" alt="' + esc(b.name_ru) + '" loading="lazy">'
         : '<span class="card__noart">?</span>') +
-      (lore ? '<span class="card__lore">' +
-        '<span class="card__lore-label">' + esc(b.name_en || 'Компендиум') + '</span>' +
-        '<span class="card__lore-text">' + esc(lore) + '</span>' +
-      '</span>' : '') +
       '</span>' +
       '<span class="card__plate">' +
       '<span class="card__name">' + esc(b.name_ru) + '</span>' +
