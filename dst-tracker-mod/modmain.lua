@@ -8,6 +8,10 @@ modimport("scripts/dst_tracker")
 
 local NAMESPACE = "dst_tracker"
 local TheNet = GLOBAL.TheNet
+local pcall = GLOBAL.pcall
+local type = GLOBAL.type
+local os_time = GLOBAL.os.time
+local last_request = {}
 
 -- Сервер отдаёт снимок прогресса клиенту, который открыл экран в паузе.
 -- Регистрируем оба RPC на обеих сторонах, чтобы id совпадали.
@@ -21,6 +25,12 @@ AddModRPCHandler(NAMESPACE, "request_snapshot", function(player)
     if not (Tracker and Tracker.SnapshotJSON) then
         return
     end
+    local uid = player.userid
+    local now = os_time()
+    if last_request[uid] and now - last_request[uid] < 2 then
+        return
+    end
+    last_request[uid] = now
     local ok, data = pcall(Tracker.SnapshotJSON)
     if not ok or type(data) ~= "string" or data == "" then
         return

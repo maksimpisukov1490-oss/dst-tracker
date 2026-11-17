@@ -41,13 +41,14 @@ local UICOLOURS = G.UICOLOURS or {
     GOLD_CLICKABLE = { 0.84, 0.82, 0.62, 1 },
     GREY = { 0.60, 0.60, 0.60, 1 },
     BROWN_DARK = { 0.31, 0.24, 0.15, 1 },
+    BROWN_MEDIUM = { 0.42, 0.33, 0.23, 1 },
     EGGSHELL = { 0.99, 0.90, 0.79, 1 },
 }
 
-local WINDOW_W, WINDOW_H = 700, 500
-local LIST_W, LIST_H = 380, 220
+local WINDOW_W, WINDOW_H = 900, 500
+local LIST_W, LIST_H = 500, 280
 local ROW_H = 38
-local BAR_W = 360
+local BAR_W = 420
 
 local SEASON_RU = {
     autumn = "осень",
@@ -105,6 +106,7 @@ end
 
 DST_TRACKER_OPEN = nil
 DST_TRACKER_LAST = nil
+DST_TRACKER_REQUESTED = 0
 
 local DSTTrackerScreen = Class(Screen, function(self)
     Screen._ctor(self, "DSTTrackerScreen")
@@ -131,26 +133,26 @@ local DSTTrackerScreen = Class(Screen, function(self)
     self.bg:SetScale(1, 1)
 
     self.world = self.proot:AddChild(Text(CHATFONT, 22, "Загрузка данных мира…", UICOLOURS.BROWN_DARK))
-    self.world:SetPosition(0, 160, 0)
+    self.world:SetPosition(0, 155, 0)
     self.world:SetHAlign(ANCHOR_MIDDLE)
 
     self.stats = self.proot:AddChild(Text(CHATFONT, 17, "", UICOLOURS.BROWN_DARK))
-    self.stats:SetPosition(0, 135, 0)
+    self.stats:SetPosition(0, 130, 0)
     self.stats:SetHAlign(ANCHOR_MIDDLE)
 
     self.pbarBg = self.proot:AddChild(Image("images/global.xml", "square.tex"))
     self.pbarBg:SetSize(BAR_W, 10)
     self.pbarBg:SetTint(0.18, 0.12, 0.06, .55)
-    self.pbarBg:SetPosition(0, 118, 0)
+    self.pbarBg:SetPosition(0, 112, 0)
 
     self.pbarFill = self.proot:AddChild(Image("images/global.xml", "square.tex"))
     self.pbarFill:SetSize(1, 10)
     self.pbarFill:SetTint(0.72, 0.55, 0.18, 1)
-    self.pbarFill:SetPosition(-BAR_W / 2, 118, 0)
+    self.pbarFill:SetPosition(-BAR_W / 2, 112, 0)
     self.pbarFill:Hide()
 
     self.tabs = {}
-    local tab_x = -200
+    local tab_x = -240
     for _, cat in ipairs(BOSS_CATEGORIES or {}) do
         local b = self.proot:AddChild(ImageButton(
             "images/global_redux.xml",
@@ -161,50 +163,50 @@ local DSTTrackerScreen = Class(Screen, function(self)
         ))
         b:SetText(cat.short or cat.name or cat.id)
         b:SetScale(.5)
-        b:SetPosition(tab_x, 78, 0)
+        b:SetPosition(tab_x, 92, 0)
         local cid = cat.id
         b:SetOnClick(function() self:SetCategory(cid) end)
         self.tabs[cid] = b
-        tab_x = tab_x + 100
+        tab_x = tab_x + 120
     end
 
     self.list = self.proot:AddChild(ScrollableList({}, LIST_W, LIST_H, ROW_H, 2, nil, nil, 0, false, 0, 0, 1, 1, "GOLD"))
-    self.list:SetPosition(-120, -70, 0)
+    self.list:SetPosition(-160, -70, 0)
 
     self.detailBg = self.proot:AddChild(Image("images/global.xml", "square.tex"))
-    self.detailBg:SetSize(250, 220)
-    self.detailBg:SetTint(0, 0, 0, .28)
-    self.detailBg:SetPosition(200, -70, 0)
+    self.detailBg:SetSize(300, 280)
+    self.detailBg:SetTint(0.80, 0.70, 0.52, .28)
+    self.detailBg:SetPosition(260, -70, 0)
 
     self.detailIcon = self.proot:AddChild(Image())
-    self.detailIcon:SetSize(60, 60)
-    self.detailIcon:SetPosition(200, 10, 0)
+    self.detailIcon:SetSize(70, 70)
+    self.detailIcon:SetPosition(260, 35, 0)
     self.detailIcon:Hide()
 
-    self.detailQ = self.proot:AddChild(Text(CHATFONT, 52, "?", UICOLOURS.GOLD))
-    self.detailQ:SetPosition(200, 10, 0)
+    self.detailQ = self.proot:AddChild(Text(CHATFONT, 52, "?", UICOLOURS.BROWN_DARK))
+    self.detailQ:SetPosition(260, 35, 0)
 
-    self.detailName = self.proot:AddChild(Text(CHATFONT, 22, "Выбери босса", UICOLOURS.GOLD))
-    self.detailName:SetPosition(200, -32, 0)
-    self.detailName:SetRegionSize(220, 40)
+    self.detailName = self.proot:AddChild(Text(CHATFONT, 22, "Выбери босса", UICOLOURS.BROWN_DARK))
+    self.detailName:SetPosition(260, -30, 0)
+    self.detailName:SetRegionSize(280, 40)
     self.detailName:SetHAlign(ANCHOR_MIDDLE)
     self.detailName:EnableWordWrap(true)
 
-    self.detailCat = self.proot:AddChild(Text(CHATFONT, 15, "", UICOLOURS.GOLD_UNIMPORTANT))
-    self.detailCat:SetPosition(200, -52, 0)
+    self.detailCat = self.proot:AddChild(Text(CHATFONT, 15, "", UICOLOURS.BROWN_MEDIUM))
+    self.detailCat:SetPosition(260, -55, 0)
 
-    self.detailStats = self.proot:AddChild(Text(CHATFONT, 15, "", UICOLOURS.GOLD_CLICKABLE))
-    self.detailStats:SetPosition(200, -70, 0)
+    self.detailStats = self.proot:AddChild(Text(CHATFONT, 15, "", UICOLOURS.BROWN_DARK))
+    self.detailStats:SetPosition(260, -75, 0)
     self.detailStats:SetHAlign(ANCHOR_MIDDLE)
 
-    self.detailLore = self.proot:AddChild(Text(CHATFONT, 14, "", UICOLOURS.EGGSHELL))
-    self.detailLore:SetPosition(200, -105, 0)
-    self.detailLore:SetRegionSize(220, 50)
+    self.detailLore = self.proot:AddChild(Text(CHATFONT, 14, "", UICOLOURS.BROWN_DARK))
+    self.detailLore:SetPosition(260, -115, 0)
+    self.detailLore:SetRegionSize(280, 70)
     self.detailLore:EnableWordWrap(true)
 
-    self.detailDrops = self.proot:AddChild(Text(CHATFONT, 13, "", UICOLOURS.GOLD_UNIMPORTANT))
-    self.detailDrops:SetPosition(200, -148, 0)
-    self.detailDrops:SetRegionSize(220, 40)
+    self.detailDrops = self.proot:AddChild(Text(CHATFONT, 13, "", UICOLOURS.BROWN_MEDIUM))
+    self.detailDrops:SetPosition(260, -175, 0)
+    self.detailDrops:SetRegionSize(280, 45)
     self.detailDrops:EnableWordWrap(true)
 
     self.close = self.proot:AddChild(ImageButton(
@@ -216,7 +218,7 @@ local DSTTrackerScreen = Class(Screen, function(self)
     ))
     self.close:SetText("Закрыть")
     self.close:SetOnClick(function() self:Close() end)
-    self.close:SetPosition(0, -215, 0)
+    self.close:SetPosition(0, -225, 0)
     self.close:SetScale(.8)
 
     self.default_focus = self.list
@@ -230,6 +232,11 @@ local DSTTrackerScreen = Class(Screen, function(self)
 end)
 
 function DSTTrackerScreen:Request()
+    local now = G.os.time()
+    if now - DST_TRACKER_REQUESTED < 2 then
+        return
+    end
+    DST_TRACKER_REQUESTED = now
     local rpc = GetModRPC and GetModRPC(NAMESPACE, "request_snapshot")
     if rpc and SendModRPCToServer then
         SendModRPCToServer(rpc)
@@ -332,14 +339,14 @@ function DSTTrackerScreen:BuildRows()
         if data and (self.category == "all" or data.category == self.category) then
             local count, kill = boss_count(snapshot, slug)
             local on = count > 0
-            local colour = on and UICOLOURS.GOLD or UICOLOURS.GREY
+            local colour = on and UICOLOURS.BROWN_DARK or UICOLOURS.BROWN_MEDIUM
 
             local row = ImageButton("images/global.xml", "square.tex")
             row.image:SetSize(LIST_W - 10, ROW_H - 4)
             if slug == self.selectedSlug then
-                row.image:SetTint(0.28, 0.20, 0.09, .6)
+                row.image:SetTint(0.55, 0.42, 0.20, .45)
             else
-                row.image:SetTint(0, 0, 0, .2)
+                row.image:SetTint(0.80, 0.70, 0.52, .28)
             end
             local current = slug
             row:SetOnClick(function() self:ShowBoss(current) end)
@@ -348,23 +355,23 @@ function DSTTrackerScreen:BuildRows()
             if atlas then
                 local icon = row:AddChild(Image(atlas, tex))
                 icon:SetSize(32, 32)
-                icon:SetPosition(-170, 0, 0)
+                icon:SetPosition(-225, 0, 0)
             else
                 local q = row:AddChild(Text(CHATFONT, 22, "?", UICOLOURS.GOLD))
-                q:SetPosition(-170, 0, 0)
+                q:SetPosition(-225, 0, 0)
             end
 
-            local check = row:AddChild(Text(CHATFONT, 18, on and "✓" or "·", colour))
-            check:SetPosition(-146, 0, 0)
+            local check = row:AddChild(Text(CHATFONT, 18, on and "✓" or "·", on and UICOLOURS.GOLD or UICOLOURS.BROWN_MEDIUM))
+            check:SetPosition(-200, 0, 0)
             check:SetHAlign(ANCHOR_LEFT)
 
             local name = row:AddChild(Text(CHATFONT, 19, "", colour))
-            name:SetPosition(-128, 0, 0)
+            name:SetPosition(-180, 0, 0)
             name:SetHAlign(ANCHOR_LEFT)
-            name:SetTruncatedString(data.name or slug, 240, nil, true)
+            name:SetTruncatedString(data.name or slug, 330, nil, true)
 
             local right = row:AddChild(Text(CHATFONT, 16, "", colour))
-            right:SetPosition(160, 0, 0)
+            right:SetPosition(220, 0, 0)
             right:SetHAlign(ANCHOR_RIGHT)
             if on then
                 local txt = "×" .. tostring(count)
@@ -417,7 +424,7 @@ function DSTTrackerScreen:UpdateSnapshot(snapshot)
     local fill = BAR_W * pct
     if fill > 0 then
         self.pbarFill:SetSize(fill, 10)
-        self.pbarFill:SetPosition(-BAR_W / 2 + fill / 2, 118, 0)
+        self.pbarFill:SetPosition(-BAR_W / 2 + fill / 2, 112, 0)
         self.pbarFill:Show()
     else
         self.pbarFill:Hide()
@@ -458,6 +465,9 @@ local function add_progress_button(self)
     end
 
     local button = self.menu:AddItem("Компендиум", function()
+        if DST_TRACKER_OPEN then
+            return
+        end
         local screen = DST_TRACKER_SCREEN and DST_TRACKER_SCREEN()
         if screen and G.TheFrontEnd then
             G.TheFrontEnd:PushScreen(screen)
@@ -466,6 +476,13 @@ local function add_progress_button(self)
     if button then
         button.__dst_tracker = true
         button:SetScale(.7)
+        self.last_focus = button
+        if self.menu.SetFocus then
+            self.menu:SetFocus(#self.menu.items)
+        end
+        if button.SetFocus then
+            button:SetFocus()
+        end
     end
 
     -- Одна лишняя строка: поднимаем меню и чуть увеличиваем окно.

@@ -58,7 +58,7 @@ local widgets = {
 local hooks = {}
 local env = {
     pairs = pairs, ipairs = ipairs, print = print, math = math, table = table,
-    type = type, string = string, tostring = tostring, tonumber = tonumber, pcall = pcall,
+    type = type, string = string, tostring = tostring, tonumber = tonumber, pcall = pcall, os = os,
     Class = function(base, ctor)
         local c = { _base = base }
         setmetatable(c, { __index = base, __call = function(_, ...)
