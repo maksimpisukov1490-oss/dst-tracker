@@ -7,6 +7,7 @@ local Widget = require "widgets/widget"
 local Text = require "widgets/text"
 local Image = require "widgets/image"
 local ImageButton = require "widgets/imagebutton"
+local Menu = require "widgets/menu"
 
 local NAMESPACE = "dst_tracker"
 
@@ -40,6 +41,7 @@ local CONTROL_SCROLLBACK = G.CONTROL_SCROLLBACK or 31
 local CONTROL_SCROLLFWD = G.CONTROL_SCROLLFWD or 32
 local CONTROL_MENU_L2 = G.CONTROL_MENU_L2 or 85
 local CONTROL_MENU_R2 = G.CONTROL_MENU_R2 or 86
+local CONTROL_MENU_MISC_1 = G.CONTROL_MENU_MISC_1 or 68
 local CHATFONT = G.CHATFONT or "bellefair"
 local HEADERFONT = G.HEADERFONT or CHATFONT
 local STRINGS = G.STRINGS or {}
@@ -84,6 +86,35 @@ for _, c in ipairs(BOSS_CATEGORIES or {}) do
     CATEGORY_NAMES[c.id] = c.name
     CATEGORY_SHORT[c.id] = c.short or c.name
 end
+
+local QUEST_ENTRIES = {}
+for _, g in ipairs(QUEST_GROUPS or {}) do
+    QUEST_ENTRIES[#QUEST_ENTRIES + 1] = g
+end
+if QUEST_MILESTONES and #QUEST_MILESTONES > 0 then
+    QUEST_ENTRIES[#QUEST_ENTRIES + 1] = {
+        id = "milestones",
+        name = "Вехи",
+        icon = "◈",
+        branch = "",
+        hint = "Ключевые события мира: разломы, сфера, руины, архивы и гломмер.",
+        items = QUEST_MILESTONES,
+    }
+end
+
+local QUEST_BRANCH_NAMES = {}
+for _, b in ipairs(QUEST_BRANCHES or {}) do
+    QUEST_BRANCH_NAMES[b.id] = b.name
+end
+
+local QUEST_SHORT = {
+    hermit = "Отшельница",
+    wagstaff = "Вагстаф",
+    charlie = "Чарли",
+    celestial_champion = "Небесный защитник",
+    ancient_fuelweaver = "Топливопряд",
+    milestones = "Вехи",
+}
 
 local function char_name(prefab)
     if not prefab or prefab == "" then
@@ -162,6 +193,9 @@ local DSTTrackerScreen = Class(Screen, function(self)
     self.detailOpen = false
     self.cards = {}
     self.categoryButtons = {}
+    self.mode = "bosses"
+    self.questGroup = QUEST_ENTRIES[1] and QUEST_ENTRIES[1].id or "hermit"
+    self.questRows = {}
 
     self.black = self:AddChild(Image("images/global.xml", "square.tex"))
     self.black:SetVRegPoint(ANCHOR_MIDDLE)
@@ -238,6 +272,22 @@ local DSTTrackerScreen = Class(Screen, function(self)
         side_y = side_y - 50
     end
 
+    self.questMenu = self.proot:AddChild(Menu({}, -46, false, "carny_xlong"))
+    self.questMenu:SetPosition(-500, 145, 0)
+    self.questMenu:Hide()
+
+    self.modeBtn = self.proot:AddChild(ImageButton(
+        "images/global_redux.xml",
+        "button_carny_long_normal.tex",
+        "button_carny_long_hover.tex",
+        "button_carny_long_disabled.tex",
+        "button_carny_long_down.tex"
+    ))
+    self.modeBtn:SetText("Квесты")
+    self.modeBtn:SetScale(.6)
+    self.modeBtn:SetPosition(-500, -150, 0)
+    self.modeBtn:SetOnClick(function() self:ToggleMode() end)
+
     self.gridRoot = self.proot:AddChild(Widget("grid"))
 
     self.pageLabel = self.proot:AddChild(Text(CHATFONT, 16, "", GOLD_SOFT))
@@ -268,7 +318,41 @@ local DSTTrackerScreen = Class(Screen, function(self)
     self.next:SetPosition(-70, -310, 0)
     self.next:SetOnClick(function() self:Page(1) end)
 
-    self.hint = self.proot:AddChild(Text(CHATFONT, 12, "A — открыть · B — закрыть · L1/R1 — раздел · L2/R2 — страница", GOLD_SOFT))
+    self.questRoot = self.proot:AddChild(Widget("quest"))
+    self.questRoot:Hide()
+
+    self.questOuter = self.questRoot:AddChild(Image("images/global.xml", "square.tex"))
+    self.questOuter:SetSize(886, 626)
+    self.questOuter:SetTint(GOLD_EDGE[1], GOLD_EDGE[2], GOLD_EDGE[3], GOLD_EDGE[4])
+    self.questOuter:SetPosition(150, 0, 0)
+
+    self.questPanel = self.questRoot:AddChild(Image("images/global.xml", "square.tex"))
+    self.questPanel:SetSize(880, 620)
+    self.questPanel:SetTint(PARCHMENT[1], PARCHMENT[2], PARCHMENT[3], .97)
+    self.questPanel:SetPosition(150, 0, 0)
+
+    self.questTitle = self.questRoot:AddChild(Text(HEADERFONT, 30, "", INK))
+    self.questTitle:SetPosition(150, 280, 0)
+    self.questTitle:SetHAlign(ANCHOR_MIDDLE)
+
+    self.questBranch = self.questRoot:AddChild(Text(CHATFONT, 15, "", INK_SOFT))
+    self.questBranch:SetPosition(150, 250, 0)
+    self.questBranch:SetHAlign(ANCHOR_MIDDLE)
+
+    self.questHint = self.questRoot:AddChild(Text(CHATFONT, 13, "", INK_SOFT))
+    self.questHint:SetPosition(150, 225, 0)
+    self.questHint:SetRegionSize(820, 40)
+    self.questHint:SetHAlign(ANCHOR_MIDDLE)
+    self.questHint:EnableWordWrap(true)
+
+    self.questCount = self.questRoot:AddChild(Text(CHATFONT, 18, "", INK))
+    self.questCount:SetPosition(150, 195, 0)
+    self.questCount:SetHAlign(ANCHOR_MIDDLE)
+
+    self.questStepsRoot = self.questRoot:AddChild(Widget("queststeps"))
+    self.questStepsRoot:SetPosition(150, 0, 0)
+
+    self.hint = self.proot:AddChild(Text(CHATFONT, 12, "A — открыть · B — закрыть · L1/R1 — раздел · L2/R2 — страница · X — квесты", GOLD_SOFT))
     self.hint:SetPosition(250, -310, 0)
     self.hint:SetHAlign(ANCHOR_MIDDLE)
 
@@ -351,6 +435,7 @@ local DSTTrackerScreen = Class(Screen, function(self)
     DST_TRACKER_OPEN = self
 
     self:SetCategory("all")
+    self:SetMode("bosses")
     if DST_TRACKER_LAST then
         self:UpdateSnapshot(DST_TRACKER_LAST)
     end
@@ -403,17 +488,32 @@ function DSTTrackerScreen:OnControl(control, down)
     if self.detailOpen then
         return true
     end
-    if control == CONTROL_SCROLLBACK then
-        self:ChangeCategory(-1)
+    if control == CONTROL_MENU_MISC_1 then
+        self:ToggleMode()
+        return true
+    elseif control == CONTROL_SCROLLBACK then
+        if self.mode == "bosses" then
+            self:ChangeCategory(-1)
+        else
+            self:ChangeQuestGroup(-1)
+        end
         return true
     elseif control == CONTROL_SCROLLFWD then
-        self:ChangeCategory(1)
+        if self.mode == "bosses" then
+            self:ChangeCategory(1)
+        else
+            self:ChangeQuestGroup(1)
+        end
         return true
     elseif control == CONTROL_MENU_L2 then
-        self:Page(-1)
+        if self.mode == "bosses" then
+            self:Page(-1)
+        end
         return true
     elseif control == CONTROL_MENU_R2 then
-        self:Page(1)
+        if self.mode == "bosses" then
+            self:Page(1)
+        end
         return true
     end
     return DSTTrackerScreen._base.OnControl(self, control, down)
@@ -549,6 +649,148 @@ function DSTTrackerScreen:MakeCard(slug, x, y, index)
     return card
 end
 
+function DSTTrackerScreen:QuestEntry(id)
+    for _, entry in ipairs(QUEST_ENTRIES) do
+        if entry.id == id then
+            return entry
+        end
+    end
+    return QUEST_ENTRIES[1]
+end
+
+function DSTTrackerScreen:ToggleMode()
+    if self.detailOpen then
+        self:CloseDetail()
+    end
+    self:SetMode(self.mode == "bosses" and "quests" or "bosses")
+end
+
+function DSTTrackerScreen:SetMode(mode)
+    self.mode = mode or "bosses"
+    local bosses = self.mode == "bosses"
+    for _, button in pairs(self.categoryButtons) do
+        if bosses then button:Show() else button:Hide() end
+    end
+    if bosses then
+        self.gridRoot:Show()
+        self.pageLabel:Show()
+        self.prev:Show()
+        self.next:Show()
+        self.questRoot:Hide()
+        self.questMenu:Hide()
+        self.sideLabel:SetString("РАЗДЕЛЫ")
+        self.modeBtn:SetText("Квесты")
+        self.hint:SetString("A — открыть · B — закрыть · L1/R1 — раздел · L2/R2 — страница · X — квесты")
+        local card = self.cards[self.focusIndex] or self.cards[1]
+        if card then
+            self.default_focus = card
+            card:SetFocus()
+        end
+    else
+        self.gridRoot:Hide()
+        self.pageLabel:Hide()
+        self.prev:Hide()
+        self.next:Hide()
+        self.questRoot:Show()
+        self.questMenu:Show()
+        self.sideLabel:SetString("КВЕСТЫ")
+        self.modeBtn:SetText("Боссы")
+        self.hint:SetString("↑↓ — группа · L1/R1 — группа · B — закрыть · X — боссы")
+        self:BuildQuestMenu()
+        self.default_focus = self.questMenu
+    end
+end
+
+function DSTTrackerScreen:ChangeQuestGroup(delta)
+    local index = 1
+    for i, entry in ipairs(QUEST_ENTRIES) do
+        if entry.id == self.questGroup then
+            index = i
+            break
+        end
+    end
+    index = index + delta
+    if index < 1 then index = #QUEST_ENTRIES end
+    if index > #QUEST_ENTRIES then index = 1 end
+    local row = self.questRows[QUEST_ENTRIES[index].id]
+    if row then
+        row:SetFocus()
+    end
+end
+
+function DSTTrackerScreen:BuildQuestMenu()
+    self.questMenu:Clear()
+    self.questRows = {}
+    local focus = 1
+    for i, entry in ipairs(QUEST_ENTRIES) do
+        local row = ImageButton("images/global.xml", "square.tex")
+        row.image:SetSize(200, 40)
+        row.image:SetTint(0.22, 0.15, 0.09, .95)
+        row:SetText(QUEST_SHORT[entry.id] or entry.name or entry.id)
+        row:SetTextSize(16)
+        row:SetTextColour(.82, .70, .48, 1)
+        row.scale_on_focus = false
+        row:SetOnClick(function() self:ShowQuestGroup(entry) end)
+        if row.text and type(row.text) == "table" then row.text:SetClickable(false) end
+        self.questMenu:AddCustomItem(row)
+        row:SetOnGainFocus(function()
+            self:ShowQuestGroup(entry)
+            row:SetTextColour(1, .90, .60, 1)
+        end)
+        row:SetOnLoseFocus(function()
+            row:SetTextColour(.82, .70, .48, 1)
+        end)
+        self.questRows[entry.id] = row
+        if entry.id == self.questGroup then
+            focus = i
+        end
+    end
+    self.questMenu:SetFocus(focus)
+end
+
+function DSTTrackerScreen:ShowQuestGroup(entry)
+    if not entry then
+        return
+    end
+    self.questGroup = entry.id
+    self.questTitle:SetString(entry.name or "")
+    self.questBranch:SetString(QUEST_BRANCH_NAMES[entry.branch] or "")
+    self.questHint:SetString(entry.hint or "")
+
+    local marks = (self.snapshot and self.snapshot.marks) or {}
+    local items = entry.items or {}
+    local done = 0
+    for _, item in ipairs(items) do
+        if marks[item.id] then
+            done = done + 1
+        end
+    end
+    local total = #items
+    local count = "Пройдено: " .. tostring(done) .. " / " .. tostring(total)
+    if entry.limit and entry.limit > 0 then
+        count = count .. " · жемчужина: " .. (done >= entry.limit and "получена" or (tostring(done) .. " / " .. tostring(entry.limit)))
+    end
+    self.questCount:SetString(count)
+
+    self.questStepsRoot:KillAllChildren()
+    for i, item in ipairs(items) do
+        local col = (i - 1) % 2
+        local row = math.floor((i - 1) / 2)
+        local x = -430 + col * 440
+        local y = 150 - row * 30
+        local on = marks[item.id] and true or false
+        local check = self.questStepsRoot:AddChild(Text(CHATFONT, 16, on and "✓" or "·", on and GOLD or INK_SOFT))
+        check:SetPosition(x, y, 0)
+        check:SetHAlign(ANCHOR_LEFT)
+        check:SetClickable(false)
+        local name = self.questStepsRoot:AddChild(Text(CHATFONT, 14, "", on and INK or INK_SOFT))
+        name:SetPosition(x + 22, y, 0)
+        name:SetHAlign(ANCHOR_LEFT)
+        name:SetTruncatedString(item.name or item.id, 390, nil, true)
+        name:SetClickable(false)
+    end
+end
+
 function DSTTrackerScreen:BuildGrid()
     self.gridRoot:KillAllChildren()
     self.cards = {}
@@ -591,7 +833,7 @@ function DSTTrackerScreen:BuildGrid()
     if #self.cards > 0 then
         self.focusIndex = math.min(self.focusIndex or 1, #self.cards)
         self.default_focus = self.cards[self.focusIndex]
-        if not self.detailOpen then
+        if self.mode == "bosses" and not self.detailOpen then
             self.cards[self.focusIndex]:SetFocus()
         end
     else
@@ -698,9 +940,14 @@ function DSTTrackerScreen:UpdateSnapshot(snapshot)
         self.pbarFill:Hide()
     end
 
-    self:BuildGrid()
-    if self.detailOpen and self.selectedSlug then
-        self:UpdateDetail(self.selectedSlug)
+    if self.mode == "bosses" then
+        self:BuildGrid()
+        if self.detailOpen and self.selectedSlug then
+            self:UpdateDetail(self.selectedSlug)
+        end
+    else
+        self:BuildQuestMenu()
+        self:ShowQuestGroup(self:QuestEntry(self.questGroup))
     end
 end
 

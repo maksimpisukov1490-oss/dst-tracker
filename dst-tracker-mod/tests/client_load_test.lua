@@ -6,13 +6,19 @@ local root = arg[1] or "."
 local function widget_class(name)
     local c = { name = name }
     c._ctor = function() end
-    c.AddChild = function(self, child) return child end
+    c.AddChild = function(self, child)
+        self.children = self.children or {}
+        table.insert(self.children, child)
+        return child
+    end
     c.SetPosition = function(self, x, y, z) self.x, self.y, self.z = x, y, z end
     c.SetScale = function(self, x, y) self.sx, self.sy = x, y end
     c.SetHAlign = function(self, v) self.halign = v end
     c.SetVAlign = function(self, v) self.valign = v end
     c.SetString = function(self, v) self.text = v end
     c.SetText = function(self, v) self.text = v end
+    c.SetTextSize = function(self, v) self.textsize = v end
+    c.SetTextColour = function(self, v) self.textcolour = v end
     c.SetTruncatedString = function(self, v) self.text = v end
     c.SetRegionSize = function() end
     c.EnableWordWrap = function() end
@@ -110,7 +116,7 @@ local env = {
     CONTROL_CANCEL = 99, CONTROL_MOVE_UP = 5, CONTROL_MOVE_DOWN = 6,
     CONTROL_MOVE_LEFT = 7, CONTROL_MOVE_RIGHT = 8,
     CONTROL_SCROLLBACK = 31, CONTROL_SCROLLFWD = 32,
-    CONTROL_MENU_L2 = 85, CONTROL_MENU_R2 = 86,
+    CONTROL_MENU_L2 = 85, CONTROL_MENU_R2 = 86, CONTROL_MENU_MISC_1 = 68,
     MOVE_UP = 1, MOVE_DOWN = 2, MOVE_LEFT = 3, MOVE_RIGHT = 4,
     BOSS_ORDER = { "deerclops", "bearger" },
     BOSS_NAMES = { deerclops = "Циклоп-олень", bearger = "Медведь-барсук" },
@@ -118,6 +124,9 @@ local env = {
         { id = "all", name = "Все чудовища", short = "Все" },
         { id = "giants", name = "Сезонные гиганты", short = "Гиганты" },
     },
+    QUEST_BRANCHES = { { id = "lunar", name = "Лунные квесты", hint = "" } },
+    QUEST_GROUPS = { { id = "hermit", branch = "lunar", name = "Квесты отшельницы", hint = "", limit = 10, items = { { id = "hermit_berry", name = "Ягоды" } } } },
+    QUEST_MILESTONES = { { id = "ruins", name = "Руины" } },
     BOSS_DATA = {
         deerclops = {
             name = "Циклоп-олень", category = "giants", hp = "4000",
@@ -193,4 +202,18 @@ if not screen.cards or #screen.cards ~= 2 then
     print("FAIL grid cards")
     os.exit(1)
 end
-print("OK client load, pause hooks=true, cards=" .. tostring(#screen.cards))
+screen:SetMode("quests")
+screen:ShowQuestGroup(env.QUEST_GROUPS[1])
+if not screen.questMenu.items or #screen.questMenu.items ~= 2 then
+    print("FAIL quest menu")
+    os.exit(1)
+end
+if not screen.questCount.text or not screen.questCount.text:find("1 / 1", 1, true) then
+    print("FAIL quest count: " .. tostring(screen.questCount.text))
+    os.exit(1)
+end
+if not screen.questStepsRoot.children or #screen.questStepsRoot.children ~= 2 then
+    print("FAIL quest steps")
+    os.exit(1)
+end
+print("OK client load, pause hooks=true, cards=" .. tostring(#screen.cards) .. " quests=" .. tostring(#screen.questMenu.items))

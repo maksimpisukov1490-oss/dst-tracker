@@ -15,6 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "dst-tracker-mod" / "scripts" / "boss_data.lua"
+OUT_QUEST = ROOT / "dst-tracker-mod" / "scripts" / "quest_data.lua"
 IMAGES = Path("/mnt/data/SteamLibrary/steamapps/common/Don't Starve Together/data/databundles/images.zip")
 SCRAPBOOK_ATLASES = ("scrapbook_icons1", "scrapbook_icons2", "scrapbook_icons3")
 
@@ -79,7 +80,7 @@ def read_site_data() -> dict:
     script = (
         "const fs=require('fs');const ctx={window:{}};"
         "(new Function('window',fs.readFileSync('js/data.js','utf8')))(ctx.window);"
-        "process.stdout.write(JSON.stringify({bosses:ctx.window.BOSSES,cats:ctx.window.CATEGORIES}));"
+        "process.stdout.write(JSON.stringify({bosses:ctx.window.BOSSES,cats:ctx.window.CATEGORIES,branches:ctx.window.MILESTONE_BRANCHES,milestones:ctx.window.MILESTONES}));"
     )
     raw = subprocess.check_output(["node", "-e", script], cwd=ROOT)
     return json.loads(raw.decode("utf-8"))
@@ -89,6 +90,8 @@ def main() -> int:
     data = read_site_data()
     bosses = data["bosses"]
     cats = data["cats"]
+    branches = data["branches"]
+    milestones = data["milestones"]
     atlases = read_scrapbook_atlases()
 
     lines = [
@@ -127,6 +130,59 @@ def main() -> int:
 
     OUT.write_text("\n".join(lines), encoding="utf-8")
     print("written %s (%d bosses)" % (OUT, len(bosses)))
+
+    qlines = [
+        "-- Сгенерировано tools/build_mod_data.py из js/data.js — не править вручную.",
+        "-- Квестовые ветки, группы и вехи для экрана «Компендиум».",
+        "",
+        "QUEST_BRANCHES = {",
+    ]
+    for b in branches:
+        qlines.append("    {")
+        qlines.append("        id = %s," % lua_string(b.get("id")))
+        qlines.append("        name = %s," % lua_string(b.get("name")))
+        qlines.append("        hint = %s," % lua_string(b.get("hint")))
+        qlines.append("    },")
+    qlines.append("}")
+    qlines.append("")
+    qlines.append("QUEST_GROUPS = {")
+    for g in milestones.get("groups") or []:
+        qlines.append("    {")
+        qlines.append("        id = %s," % lua_string(g.get("id")))
+        qlines.append("        branch = %s," % lua_string(g.get("branch")))
+        qlines.append("        name = %s," % lua_string(g.get("name")))
+        qlines.append("        icon = %s," % lua_string(g.get("icon")))
+        qlines.append("        hint = %s," % lua_string(g.get("hint")))
+        qlines.append("        limit = %s," % (int(g.get("limit") or 0)))
+        reward = g.get("reward") or {}
+        qlines.append("        reward_name = %s," % lua_string(reward.get("name")))
+        qlines.append("        items = {")
+        for item in g.get("items") or []:
+            qlines.append("            { id = %s, name = %s, note = %s }," % (
+                lua_string(item.get("id")),
+                lua_string(item.get("name")),
+                lua_string(item.get("note")),
+            ))
+        qlines.append("        },")
+        qlines.append("    },")
+    qlines.append("}")
+    qlines.append("")
+    qlines.append("QUEST_MILESTONES = {")
+    for item in milestones.get("items") or []:
+        qlines.append("    { id = %s, name = %s, icon = %s, note = %s }," % (
+            lua_string(item.get("id")),
+            lua_string(item.get("name")),
+            lua_string(item.get("icon")),
+            lua_string(item.get("note")),
+        ))
+    qlines.append("}")
+    qlines.append("")
+    OUT_QUEST.write_text("\n".join(qlines), encoding="utf-8")
+    print("written %s (%d groups, %d milestones)" % (
+        OUT_QUEST,
+        len(milestones.get("groups") or []),
+        len(milestones.get("items") or []),
+    ))
     return 0
 
 
