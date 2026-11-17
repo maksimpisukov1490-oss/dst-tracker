@@ -21,6 +21,22 @@ local function widget_class(name)
     c.Show = function(self) self.hidden = false end
     c.Hide = function(self) self.hidden = true end
     c.SetOnClick = function(self, fn) self.onclick = fn end
+    c.SetOnGainFocus = function(self, fn) self.ongainfocus = fn end
+    c.Clear = function(self) self.items = {} end
+    c.AddCustomItem = function(self, item)
+        self.items = self.items or {}
+        table.insert(self.items, item)
+        return item
+    end
+    c.AddItem = function(self, text, cb)
+        self.items = self.items or {}
+        local b = widget_class("button")()
+        b.text = text
+        b.onclick = cb
+        table.insert(self.items, b)
+        return b
+    end
+    c.SetFocus = function() end
     c.SetScaleMode = function(self, v) self.scalemode = v end
     c.SetTint = function(self, r, g, b, a) self.tint = { r, g, b, a } end
     c.SetVRegPoint = function() end
@@ -37,6 +53,7 @@ local function widget_class(name)
     end
     setmetatable(c, { __call = function(_, ...)
         local o = setmetatable({}, { __index = c })
+        if name == "menu" then o.items = {} end
         if c._ctor then c._ctor(o, ...) end
         return o
     end })
@@ -50,6 +67,7 @@ local widgets = {
     ["widgets/image"] = widget_class("image"),
     ["widgets/imagebutton"] = widget_class("imagebutton"),
     ["widgets/scrollablelist"] = widget_class("scrollablelist"),
+    ["widgets/menu"] = widget_class("menu"),
     ["widgets/redux/templates"] = {
         CurlyWindow = function() return widget_class("curly")() end,
     },
@@ -82,7 +100,7 @@ local env = {
     CHATFONT = "chat",
     ANCHOR_LEFT = 1, ANCHOR_RIGHT = 2, ANCHOR_MIDDLE = 3, ANCHOR_TOP = 4,
     SCALEMODE_FILLSCREEN = 1, SCALEMODE_PROPORTIONAL = 2,
-    CONTROL_CANCEL = 99,
+    CONTROL_CANCEL = 99, CONTROL_MOVE_LEFT = 7, CONTROL_MOVE_RIGHT = 8,
     BOSS_ORDER = { "deerclops", "bearger" },
     BOSS_NAMES = { deerclops = "Циклоп-олень", bearger = "Медведь-барсук" },
     BOSS_CATEGORIES = {
@@ -160,8 +178,8 @@ if not screen.stats.text or not screen.stats.text:find("Победы: 1 / 2", 1,
     print("FAIL stats text: " .. tostring(screen.stats.text))
     os.exit(1)
 end
-if not screen.list.items or #screen.list.items ~= 2 then
-    print("FAIL list rows")
+if not screen.menu.items or #screen.menu.items ~= 2 then
+    print("FAIL menu rows")
     os.exit(1)
 end
-print("OK client load, pause hooks=true, rows=" .. tostring(#screen.list.items))
+print("OK client load, pause hooks=true, rows=" .. tostring(#screen.menu.items))

@@ -1,19 +1,19 @@
--- Клиентская часть: кнопка «Компендиум» в меню паузы и экран прогресса.
--- Данные приходят с сервера по RPC, потому что серверный мод ведёт учёт,
--- а интерфейс живёт в клиентском окружении.
+-- Клиентская часть: кнопка «Компендиум» в меню паузы и экран-справочник.
+-- Данные прогресса приходят с сервера по RPC, статичные описания и иконки
+-- лежат в scripts/boss_data.lua (сгенерирован из данных сайта).
 
 local Screen = require "widgets/screen"
 local Widget = require "widgets/widget"
 local Text = require "widgets/text"
 local Image = require "widgets/image"
 local ImageButton = require "widgets/imagebutton"
-local ScrollableList = require "widgets/scrollablelist"
+local Menu = require "widgets/menu"
 local TEMPLATES = require "widgets/redux/templates"
 
 local NAMESPACE = "dst_tracker"
 
--- В клиентском окружении мода игровые константы лежат в GLOBAL,
--- а не всегда доступны как обычные глобалы.
+-- В клиентском окружении мода игровые константы и часть стандартных
+-- функций лежат в GLOBAL, а не как обычные глобалы.
 local G = GLOBAL
 local tonumber = G.tonumber
 local tostring = G.tostring
@@ -31,6 +31,8 @@ local ANCHOR_RIGHT = G.ANCHOR_RIGHT or 2
 local SCALEMODE_FILLSCREEN = G.SCALEMODE_FILLSCREEN or 1
 local SCALEMODE_PROPORTIONAL = G.SCALEMODE_PROPORTIONAL or 2
 local CONTROL_CANCEL = G.CONTROL_CANCEL or 30
+local CONTROL_MOVE_LEFT = G.CONTROL_MOVE_LEFT or 7
+local CONTROL_MOVE_RIGHT = G.CONTROL_MOVE_RIGHT or 8
 local CHATFONT = G.CHATFONT or "bellefair"
 local STRINGS = G.STRINGS or {}
 local GetScrapbookIconAtlas = G.GetScrapbookIconAtlas
@@ -46,8 +48,8 @@ local UICOLOURS = G.UICOLOURS or {
 }
 
 local WINDOW_W, WINDOW_H = 900, 500
-local LIST_W, LIST_H = 500, 280
-local ROW_H = 38
+local PAGE_W, PAGE_H = 420, 330
+local PAGE_SIZE = 6
 local BAR_W = 420
 
 local SEASON_RU = {
@@ -111,7 +113,7 @@ DST_TRACKER_REQUESTED = 0
 local DSTTrackerScreen = Class(Screen, function(self)
     Screen._ctor(self, "DSTTrackerScreen")
 
-    self.category = "all"
+    self.page = 1
     self.selectedSlug = nil
 
     self.black = self:AddChild(ImageButton("images/global.xml", "square.tex"))
@@ -129,85 +131,121 @@ local DSTTrackerScreen = Class(Screen, function(self)
     self.proot:SetPosition(0, 0, 0)
     self.proot:SetScaleMode(SCALEMODE_PROPORTIONAL)
 
-    self.bg = self.proot:AddChild(TEMPLATES.CurlyWindow(WINDOW_W, WINDOW_H, "Компендиум выжившего", nil, nil, nil))
+    self.bg = self.proot:AddChild(TEMPLATES.CurlyWindow(WINDOW_W, WINDOW_H, "Справочник охотника", nil, nil, nil))
     self.bg:SetScale(1, 1)
 
-    self.world = self.proot:AddChild(Text(CHATFONT, 22, "Загрузка данных мира…", UICOLOURS.BROWN_DARK))
-    self.world:SetPosition(0, 155, 0)
+    self.world = self.proot:AddChild(Text(CHATFONT, 21, "Загрузка данных мира…", UICOLOURS.BROWN_DARK))
+    self.world:SetPosition(0, 160, 0)
     self.world:SetHAlign(ANCHOR_MIDDLE)
 
-    self.stats = self.proot:AddChild(Text(CHATFONT, 17, "", UICOLOURS.BROWN_DARK))
-    self.stats:SetPosition(0, 130, 0)
+    self.stats = self.proot:AddChild(Text(CHATFONT, 16, "", UICOLOURS.BROWN_DARK))
+    self.stats:SetPosition(0, 138, 0)
     self.stats:SetHAlign(ANCHOR_MIDDLE)
 
     self.pbarBg = self.proot:AddChild(Image("images/global.xml", "square.tex"))
-    self.pbarBg:SetSize(BAR_W, 10)
+    self.pbarBg:SetSize(BAR_W, 9)
     self.pbarBg:SetTint(0.18, 0.12, 0.06, .55)
-    self.pbarBg:SetPosition(0, 112, 0)
+    self.pbarBg:SetPosition(0, 120, 0)
 
     self.pbarFill = self.proot:AddChild(Image("images/global.xml", "square.tex"))
-    self.pbarFill:SetSize(1, 10)
+    self.pbarFill:SetSize(1, 9)
     self.pbarFill:SetTint(0.72, 0.55, 0.18, 1)
-    self.pbarFill:SetPosition(-BAR_W / 2, 112, 0)
+    self.pbarFill:SetPosition(-BAR_W / 2, 120, 0)
     self.pbarFill:Hide()
 
-    self.tabs = {}
-    local tab_x = -240
-    for _, cat in ipairs(BOSS_CATEGORIES or {}) do
-        local b = self.proot:AddChild(ImageButton(
-            "images/global_redux.xml",
-            "button_carny_long_normal.tex",
-            "button_carny_long_hover.tex",
-            "button_carny_long_disabled.tex",
-            "button_carny_long_down.tex"
-        ))
-        b:SetText(cat.short or cat.name or cat.id)
-        b:SetScale(.5)
-        b:SetPosition(tab_x, 92, 0)
-        local cid = cat.id
-        b:SetOnClick(function() self:SetCategory(cid) end)
-        self.tabs[cid] = b
-        tab_x = tab_x + 120
-    end
+    -- Разворот справочника: две страницы и корешок.
+    self.pageBgL = self.proot:AddChild(Image("images/global.xml", "square.tex"))
+    self.pageBgL:SetSize(PAGE_W + 8, PAGE_H + 8)
+    self.pageBgL:SetTint(0.35, 0.25, 0.12, .35)
+    self.pageBgL:SetPosition(-225, -60, 0)
 
-    self.list = self.proot:AddChild(ScrollableList({}, LIST_W, LIST_H, ROW_H, 2, nil, nil, 0, false, 0, 0, 1, 1, "GOLD"))
-    self.list:SetPosition(-160, -70, 0)
+    self.pageL = self.proot:AddChild(Image("images/global.xml", "square.tex"))
+    self.pageL:SetSize(PAGE_W, PAGE_H)
+    self.pageL:SetTint(0.86, 0.78, 0.62, .35)
+    self.pageL:SetPosition(-225, -60, 0)
 
-    self.detailBg = self.proot:AddChild(Image("images/global.xml", "square.tex"))
-    self.detailBg:SetSize(300, 280)
-    self.detailBg:SetTint(0.80, 0.70, 0.52, .28)
-    self.detailBg:SetPosition(260, -70, 0)
+    self.pageBgR = self.proot:AddChild(Image("images/global.xml", "square.tex"))
+    self.pageBgR:SetSize(PAGE_W + 8, PAGE_H + 8)
+    self.pageBgR:SetTint(0.35, 0.25, 0.12, .35)
+    self.pageBgR:SetPosition(225, -60, 0)
 
+    self.pageR = self.proot:AddChild(Image("images/global.xml", "square.tex"))
+    self.pageR:SetSize(PAGE_W, PAGE_H)
+    self.pageR:SetTint(0.86, 0.78, 0.62, .35)
+    self.pageR:SetPosition(225, -60, 0)
+
+    self.spine = self.proot:AddChild(Image("images/global.xml", "square.tex"))
+    self.spine:SetSize(2, PAGE_H)
+    self.spine:SetTint(0.45, 0.33, 0.16, .6)
+    self.spine:SetPosition(0, -60, 0)
+
+    self.pageLabel = self.proot:AddChild(Text(CHATFONT, 17, "", UICOLOURS.BROWN_DARK))
+    self.pageLabel:SetPosition(-225, 94, 0)
+    self.pageLabel:SetHAlign(ANCHOR_MIDDLE)
+
+    self.prev = self.proot:AddChild(ImageButton(
+        "images/global_redux.xml",
+        "button_carny_long_normal.tex",
+        "button_carny_long_hover.tex",
+        "button_carny_long_disabled.tex",
+        "button_carny_long_down.tex"
+    ))
+    self.prev:SetText("←")
+    self.prev:SetScale(.42)
+    self.prev:SetPosition(-390, 94, 0)
+    self.prev:SetOnClick(function() self:Page(-1) end)
+
+    self.next = self.proot:AddChild(ImageButton(
+        "images/global_redux.xml",
+        "button_carny_long_normal.tex",
+        "button_carny_long_hover.tex",
+        "button_carny_long_disabled.tex",
+        "button_carny_long_down.tex"
+    ))
+    self.next:SetText("→")
+    self.next:SetScale(.42)
+    self.next:SetPosition(-60, 94, 0)
+    self.next:SetOnClick(function() self:Page(1) end)
+
+    -- Левая страница: список боссов, Menu сам ведёт фокус с геймпада.
+    self.menu = self.proot:AddChild(Menu({}, -48, false, "carny_xlong"))
+    self.menu:SetPosition(-225, 55, 0)
+
+    -- Правая страница: выбранный босс.
     self.detailIcon = self.proot:AddChild(Image())
-    self.detailIcon:SetSize(70, 70)
-    self.detailIcon:SetPosition(260, 35, 0)
+    self.detailIcon:SetSize(90, 90)
+    self.detailIcon:SetPosition(225, 60, 0)
     self.detailIcon:Hide()
 
-    self.detailQ = self.proot:AddChild(Text(CHATFONT, 52, "?", UICOLOURS.BROWN_DARK))
-    self.detailQ:SetPosition(260, 35, 0)
+    self.detailQ = self.proot:AddChild(Text(CHATFONT, 56, "?", UICOLOURS.BROWN_DARK))
+    self.detailQ:SetPosition(225, 60, 0)
 
-    self.detailName = self.proot:AddChild(Text(CHATFONT, 22, "Выбери босса", UICOLOURS.BROWN_DARK))
-    self.detailName:SetPosition(260, -30, 0)
-    self.detailName:SetRegionSize(280, 40)
+    self.detailName = self.proot:AddChild(Text(CHATFONT, 23, "Выбери босса", UICOLOURS.BROWN_DARK))
+    self.detailName:SetPosition(225, -8, 0)
+    self.detailName:SetRegionSize(380, 40)
     self.detailName:SetHAlign(ANCHOR_MIDDLE)
     self.detailName:EnableWordWrap(true)
 
     self.detailCat = self.proot:AddChild(Text(CHATFONT, 15, "", UICOLOURS.BROWN_MEDIUM))
-    self.detailCat:SetPosition(260, -55, 0)
+    self.detailCat:SetPosition(225, -32, 0)
 
     self.detailStats = self.proot:AddChild(Text(CHATFONT, 15, "", UICOLOURS.BROWN_DARK))
-    self.detailStats:SetPosition(260, -75, 0)
+    self.detailStats:SetPosition(225, -54, 0)
     self.detailStats:SetHAlign(ANCHOR_MIDDLE)
 
     self.detailLore = self.proot:AddChild(Text(CHATFONT, 14, "", UICOLOURS.BROWN_DARK))
-    self.detailLore:SetPosition(260, -115, 0)
-    self.detailLore:SetRegionSize(280, 70)
+    self.detailLore:SetPosition(225, -97, 0)
+    self.detailLore:SetRegionSize(380, 80)
     self.detailLore:EnableWordWrap(true)
 
     self.detailDrops = self.proot:AddChild(Text(CHATFONT, 13, "", UICOLOURS.BROWN_MEDIUM))
-    self.detailDrops:SetPosition(260, -175, 0)
-    self.detailDrops:SetRegionSize(280, 45)
+    self.detailDrops:SetPosition(225, -177, 0)
+    self.detailDrops:SetRegionSize(380, 45)
     self.detailDrops:EnableWordWrap(true)
+
+    self.hint = self.proot:AddChild(Text(CHATFONT, 13, "A — выбрать · ← → — страницы · B — закрыть", UICOLOURS.BROWN_MEDIUM))
+    self.hint:SetPosition(-225, -235, 0)
+    self.hint:SetHAlign(ANCHOR_MIDDLE)
 
     self.close = self.proot:AddChild(ImageButton(
         "images/global_redux.xml",
@@ -218,13 +256,13 @@ local DSTTrackerScreen = Class(Screen, function(self)
     ))
     self.close:SetText("Закрыть")
     self.close:SetOnClick(function() self:Close() end)
-    self.close:SetPosition(0, -225, 0)
-    self.close:SetScale(.8)
+    self.close:SetPosition(350, -235, 0)
+    self.close:SetScale(.7)
 
-    self.default_focus = self.list
+    self.default_focus = self.menu
     DST_TRACKER_OPEN = self
 
-    self:SetCategory("all")
+    self:BuildPage()
     if DST_TRACKER_LAST then
         self:UpdateSnapshot(DST_TRACKER_LAST)
     end
@@ -253,33 +291,124 @@ function DSTTrackerScreen:Close()
 end
 
 function DSTTrackerScreen:OnControl(control, down)
-    if DSTTrackerScreen._base.OnControl(self, control, down) then
-        return true
-    end
     if down then
         return false
     end
     if control == CONTROL_CANCEL then
         self:Close()
         return true
+    elseif control == CONTROL_MOVE_LEFT then
+        self:Page(-1)
+        return true
+    elseif control == CONTROL_MOVE_RIGHT then
+        self:Page(1)
+        return true
     end
-    return false
+    return DSTTrackerScreen._base.OnControl(self, control, down)
 end
 
-function DSTTrackerScreen:SetCategory(id)
-    self.category = id or "all"
-    for cid, button in pairs(self.tabs) do
-        local active = cid == self.category
-        button:SetScale(active and .56 or .5)
-        if button.image then
-            if active then
-                button.image:SetTint(1, .93, .68, 1)
-            else
-                button.image:SetTint(.72, .72, .72, 1)
-            end
+function DSTTrackerScreen:Page(delta)
+    local total = #(BOSS_ORDER or {})
+    local pages = math.max(1, math.ceil(total / PAGE_SIZE))
+    local p = self.page + delta
+    if p < 1 then p = 1 end
+    if p > pages then p = pages end
+    if p ~= self.page then
+        self.page = p
+        self:BuildPage()
+    end
+end
+
+function DSTTrackerScreen:SlugOnPage(slug)
+    local total = #(BOSS_ORDER or {})
+    local start = (self.page - 1) * PAGE_SIZE + 1
+    local stop = math.min(start + PAGE_SIZE - 1, total)
+    for i = start, stop do
+        if BOSS_ORDER[i] == slug then
+            return i - start + 1
         end
     end
-    self:BuildRows()
+    return nil
+end
+
+function DSTTrackerScreen:MakeRow(slug)
+    local data = BOSS_DATA and BOSS_DATA[slug]
+    local count, kill = boss_count(self.snapshot, slug)
+    local on = count > 0
+    local colour = on and UICOLOURS.BROWN_DARK or UICOLOURS.BROWN_MEDIUM
+
+    local row = ImageButton("images/global.xml", "square.tex")
+    row.image:SetSize(PAGE_W - 20, 44)
+    row.image:SetTint(0.82, 0.72, 0.55, .22)
+    row:SetOnClick(function() self:ShowBoss(slug) end)
+
+    local atlas, tex = boss_icon(slug)
+    if atlas then
+        local icon = row:AddChild(Image(atlas, tex))
+        icon:SetSize(36, 36)
+        icon:SetPosition(-175, 0, 0)
+    else
+        local q = row:AddChild(Text(CHATFONT, 22, "?", UICOLOURS.BROWN_MEDIUM))
+        q:SetPosition(-175, 0, 0)
+    end
+
+    local name = row:AddChild(Text(CHATFONT, 19, "", colour))
+    name:SetPosition(-145, 6, 0)
+    name:SetHAlign(ANCHOR_LEFT)
+    name:SetTruncatedString((data and data.name) or slug, 300, nil, true)
+
+    local cat = row:AddChild(Text(CHATFONT, 12, category_name(data and data.category), UICOLOURS.BROWN_MEDIUM))
+    cat:SetPosition(-145, -11, 0)
+    cat:SetHAlign(ANCHOR_LEFT)
+
+    local right = row:AddChild(Text(CHATFONT, 16, "", colour))
+    right:SetPosition(180, 0, 0)
+    right:SetHAlign(ANCHOR_RIGHT)
+    if on then
+        local txt = "×" .. tostring(count)
+        local day = kill and tonumber(kill.day) or 0
+        if day > 0 then txt = txt .. " · д." .. tostring(day) end
+        right:SetString(txt)
+    end
+
+    return row
+end
+
+function DSTTrackerScreen:BuildPage()
+    local total = #(BOSS_ORDER or {})
+    local pages = math.max(1, math.ceil(total / PAGE_SIZE))
+    if self.page < 1 then self.page = 1 end
+    if self.page > pages then self.page = pages end
+    self.pageLabel:SetString("Страница " .. tostring(self.page) .. " / " .. tostring(pages))
+
+    self.menu:Clear()
+    local start = (self.page - 1) * PAGE_SIZE + 1
+    local stop = math.min(start + PAGE_SIZE - 1, total)
+    local first = nil
+    for i = start, stop do
+        local slug = BOSS_ORDER[i]
+        local row = self:MakeRow(slug)
+        self.menu:AddCustomItem(row)
+        row:SetOnGainFocus(function() self:ShowBoss(slug) end)
+        if not first then first = slug end
+    end
+
+    if first then
+        local focus = self:SlugOnPage(self.selectedSlug) or 1
+        if not self.selectedSlug or not self:SlugOnPage(self.selectedSlug) then
+            self.selectedSlug = first
+            self:UpdateDetail(first)
+        end
+        self.menu:SetFocus(focus)
+    else
+        self.selectedSlug = nil
+        self:UpdateDetail(nil)
+    end
+end
+
+function DSTTrackerScreen:ShowBoss(slug)
+    self.selectedSlug = slug
+    self:UpdateDetail(slug)
 end
 
 function DSTTrackerScreen:UpdateDetail(slug)
@@ -324,69 +453,6 @@ function DSTTrackerScreen:UpdateDetail(slug)
     self.detailDrops:SetString(data.drops and ("Добыча: " .. data.drops) or "")
 end
 
-function DSTTrackerScreen:ShowBoss(slug)
-    self.selectedSlug = slug
-    self:UpdateDetail(slug)
-    self:BuildRows()
-end
-
-function DSTTrackerScreen:BuildRows()
-    local snapshot = self.snapshot or {}
-    local rows = {}
-
-    for _, slug in ipairs(BOSS_ORDER or {}) do
-        local data = BOSS_DATA and BOSS_DATA[slug]
-        if data and (self.category == "all" or data.category == self.category) then
-            local count, kill = boss_count(snapshot, slug)
-            local on = count > 0
-            local colour = on and UICOLOURS.BROWN_DARK or UICOLOURS.BROWN_MEDIUM
-
-            local row = ImageButton("images/global.xml", "square.tex")
-            row.image:SetSize(LIST_W - 10, ROW_H - 4)
-            if slug == self.selectedSlug then
-                row.image:SetTint(0.55, 0.42, 0.20, .45)
-            else
-                row.image:SetTint(0.80, 0.70, 0.52, .28)
-            end
-            local current = slug
-            row:SetOnClick(function() self:ShowBoss(current) end)
-
-            local atlas, tex = boss_icon(slug)
-            if atlas then
-                local icon = row:AddChild(Image(atlas, tex))
-                icon:SetSize(32, 32)
-                icon:SetPosition(-225, 0, 0)
-            else
-                local q = row:AddChild(Text(CHATFONT, 22, "?", UICOLOURS.GOLD))
-                q:SetPosition(-225, 0, 0)
-            end
-
-            local check = row:AddChild(Text(CHATFONT, 18, on and "✓" or "·", on and UICOLOURS.GOLD or UICOLOURS.BROWN_MEDIUM))
-            check:SetPosition(-200, 0, 0)
-            check:SetHAlign(ANCHOR_LEFT)
-
-            local name = row:AddChild(Text(CHATFONT, 19, "", colour))
-            name:SetPosition(-180, 0, 0)
-            name:SetHAlign(ANCHOR_LEFT)
-            name:SetTruncatedString(data.name or slug, 330, nil, true)
-
-            local right = row:AddChild(Text(CHATFONT, 16, "", colour))
-            right:SetPosition(220, 0, 0)
-            right:SetHAlign(ANCHOR_RIGHT)
-            if on then
-                local txt = "×" .. tostring(count)
-                local day = kill and tonumber(kill.day) or 0
-                if day > 0 then txt = txt .. " · д." .. tostring(day) end
-                right:SetString(txt)
-            end
-
-            rows[#rows + 1] = row
-        end
-    end
-
-    self.list:SetList(rows)
-end
-
 function DSTTrackerScreen:UpdateSnapshot(snapshot)
     self.snapshot = snapshot
     local w = snapshot.world or {}
@@ -423,17 +489,14 @@ function DSTTrackerScreen:UpdateSnapshot(snapshot)
     local pct = total > 0 and (killed / total) or 0
     local fill = BAR_W * pct
     if fill > 0 then
-        self.pbarFill:SetSize(fill, 10)
-        self.pbarFill:SetPosition(-BAR_W / 2 + fill / 2, 112, 0)
+        self.pbarFill:SetSize(fill, 9)
+        self.pbarFill:SetPosition(-BAR_W / 2 + fill / 2, 120, 0)
         self.pbarFill:Show()
     else
         self.pbarFill:Hide()
     end
 
-    self:BuildRows()
-    if self.selectedSlug then
-        self:UpdateDetail(self.selectedSlug)
-    end
+    self:BuildPage()
 end
 
 DST_TRACKER_SCREEN = DSTTrackerScreen
