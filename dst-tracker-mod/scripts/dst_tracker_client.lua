@@ -12,6 +12,28 @@ local TEMPLATES = require "widgets/redux/templates"
 
 local NAMESPACE = "dst_tracker"
 
+-- В клиентском окружении мода игровые константы лежат в GLOBAL,
+-- а не всегда доступны как обычные глобалы.
+local G = GLOBAL
+local ANCHOR_MIDDLE = G.ANCHOR_MIDDLE or 0
+local ANCHOR_LEFT = G.ANCHOR_LEFT or 1
+local ANCHOR_RIGHT = G.ANCHOR_RIGHT or 2
+local SCALEMODE_FILLSCREEN = G.SCALEMODE_FILLSCREEN or 1
+local SCALEMODE_PROPORTIONAL = G.SCALEMODE_PROPORTIONAL or 2
+local CONTROL_CANCEL = G.CONTROL_CANCEL or 30
+local CHATFONT = G.CHATFONT or "bellefair"
+local STRINGS = G.STRINGS or {}
+local GetScrapbookIconAtlas = G.GetScrapbookIconAtlas
+local UICOLOURS = G.UICOLOURS or {
+    GOLD = { 0.79, 0.68, 0.46, 1 },
+    GOLD_SELECTED = { 0.96, 0.95, 0.87, 1 },
+    GOLD_UNIMPORTANT = { 0.84, 0.84, 0.80, 1 },
+    GOLD_CLICKABLE = { 0.84, 0.82, 0.62, 1 },
+    GREY = { 0.60, 0.60, 0.60, 1 },
+    BROWN_DARK = { 0.31, 0.24, 0.15, 1 },
+    EGGSHELL = { 0.99, 0.90, 0.79, 1 },
+}
+
 local WINDOW_W, WINDOW_H = 700, 500
 local LIST_W, LIST_H = 380, 220
 local ROW_H = 38
@@ -112,7 +134,7 @@ local DSTTrackerScreen = Class(Screen, function(self)
     self.pbarBg:SetPosition(0, 118, 0)
 
     self.pbarFill = self.proot:AddChild(Image("images/global.xml", "square.tex"))
-    self.pbarFill:SetSize(0, 10)
+    self.pbarFill:SetSize(1, 10)
     self.pbarFill:SetTint(0.72, 0.55, 0.18, 1)
     self.pbarFill:SetPosition(-BAR_W / 2, 118, 0)
     self.pbarFill:Hide()
@@ -130,8 +152,9 @@ local DSTTrackerScreen = Class(Screen, function(self)
         b:SetText(cat.short or cat.name or cat.id)
         b:SetScale(.5)
         b:SetPosition(tab_x, 78, 0)
-        b:SetOnClick(function() self:SetCategory(cat.id) end)
-        self.tabs[cat.id] = b
+        local cid = cat.id
+        b:SetOnClick(function() self:SetCategory(cid) end)
+        self.tabs[cid] = b
         tab_x = tab_x + 100
     end
 
@@ -207,7 +230,9 @@ function DSTTrackerScreen:Close()
     if DST_TRACKER_OPEN == self then
         DST_TRACKER_OPEN = nil
     end
-    TheFrontEnd:PopScreen(self)
+    if G.TheFrontEnd then
+        G.TheFrontEnd:PopScreen(self)
+    end
 end
 
 function DSTTrackerScreen:OnControl(control, down)
@@ -306,7 +331,8 @@ function DSTTrackerScreen:BuildRows()
             else
                 row.image:SetTint(0, 0, 0, .2)
             end
-            row:SetOnClick(function() self:ShowBoss(slug) end)
+            local current = slug
+            row:SetOnClick(function() self:ShowBoss(current) end)
 
             local atlas, tex = boss_icon(slug)
             if atlas then
@@ -325,7 +351,7 @@ function DSTTrackerScreen:BuildRows()
             local name = row:AddChild(Text(CHATFONT, 19, "", colour))
             name:SetPosition(-128, 0, 0)
             name:SetHAlign(ANCHOR_LEFT)
-            name:SetTruncatedString(data.name or slug, 240, 20, true)
+            name:SetTruncatedString(data.name or slug, 240, nil, true)
 
             local right = row:AddChild(Text(CHATFONT, 16, "", colour))
             right:SetPosition(160, 0, 0)
@@ -396,7 +422,10 @@ end
 DST_TRACKER_SCREEN = DSTTrackerScreen
 
 function DST_TRACKER_ON_SNAPSHOT(data)
-    local ok, snapshot = pcall(json.decode, data)
+    if not (G.json and G.json.decode) then
+        return
+    end
+    local ok, snapshot = pcall(G.json.decode, data)
     if not ok or type(snapshot) ~= "table" then
         return
     end
@@ -420,8 +449,8 @@ local function add_progress_button(self)
 
     local button = self.menu:AddItem("Компендиум", function()
         local screen = DST_TRACKER_SCREEN and DST_TRACKER_SCREEN()
-        if screen then
-            TheFrontEnd:PushScreen(screen)
+        if screen and G.TheFrontEnd then
+            G.TheFrontEnd:PushScreen(screen)
         end
     end)
     if button then

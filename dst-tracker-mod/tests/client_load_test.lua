@@ -109,6 +109,7 @@ local env = {
     json = { decode = function() return {} end },
 }
 env.env = env
+env.GLOBAL = env
 setmetatable(env, { __index = function(_, k)
     if k == "DST_TRACKER_LAST" or k == "DST_TRACKER_OPEN" then
         return nil
