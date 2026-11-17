@@ -20,8 +20,12 @@ local function widget_class(name)
     c.SetTexture = function(self, atlas, tex) self.atlas, self.tex = atlas, tex end
     c.Show = function(self) self.hidden = false end
     c.Hide = function(self) self.hidden = true end
+    c.Kill = function(self) self.killed = true end
+    c.MoveToFront = function() end
+    c.MoveToBack = function() end
     c.SetOnClick = function(self, fn) self.onclick = fn end
     c.SetOnGainFocus = function(self, fn) self.ongainfocus = fn end
+    c.SetOnLoseFocus = function(self, fn) self.onlosefocus = fn end
     c.Clear = function(self) self.items = {} end
     c.AddCustomItem = function(self, item)
         self.items = self.items or {}
@@ -37,6 +41,7 @@ local function widget_class(name)
         return b
     end
     c.SetFocus = function() end
+    c.SetFocusChangeDir = function() end
     c.SetScaleMode = function(self, v) self.scalemode = v end
     c.SetTint = function(self, r, g, b, a) self.tint = { r, g, b, a } end
     c.SetVRegPoint = function() end
@@ -97,10 +102,13 @@ local env = {
         GOLD = {}, GOLD_SELECTED = {}, GOLD_UNIMPORTANT = {}, GOLD_CLICKABLE = {},
         GREY = {}, BROWN_DARK = {}, EGGSHELL = {},
     },
-    CHATFONT = "chat",
+    CHATFONT = "chat", HEADERFONT = "header",
     ANCHOR_LEFT = 1, ANCHOR_RIGHT = 2, ANCHOR_MIDDLE = 3, ANCHOR_TOP = 4,
     SCALEMODE_FILLSCREEN = 1, SCALEMODE_PROPORTIONAL = 2,
-    CONTROL_CANCEL = 99, CONTROL_MOVE_LEFT = 7, CONTROL_MOVE_RIGHT = 8,
+    CONTROL_CANCEL = 99, CONTROL_MOVE_UP = 5, CONTROL_MOVE_DOWN = 6,
+    CONTROL_MOVE_LEFT = 7, CONTROL_MOVE_RIGHT = 8,
+    CONTROL_SCROLLBACK = 31, CONTROL_SCROLLFWD = 32,
+    CONTROL_MENU_L2 = 85, CONTROL_MENU_R2 = 86,
     BOSS_ORDER = { "deerclops", "bearger" },
     BOSS_NAMES = { deerclops = "Циклоп-олень", bearger = "Медведь-барсук" },
     BOSS_CATEGORIES = {
@@ -178,8 +186,8 @@ if not screen.stats.text or not screen.stats.text:find("Победы: 1 / 2", 1,
     print("FAIL stats text: " .. tostring(screen.stats.text))
     os.exit(1)
 end
-if not screen.menu.items or #screen.menu.items ~= 2 then
-    print("FAIL menu rows")
+if not screen.cards or #screen.cards ~= 2 then
+    print("FAIL grid cards")
     os.exit(1)
 end
-print("OK client load, pause hooks=true, rows=" .. tostring(#screen.menu.items))
+print("OK client load, pause hooks=true, cards=" .. tostring(#screen.cards))
