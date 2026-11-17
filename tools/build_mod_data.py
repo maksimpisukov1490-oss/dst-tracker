@@ -8,11 +8,15 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "dst-tracker-mod" / "scripts" / "boss_data.lua"
+IMAGES = Path("/mnt/data/SteamLibrary/steamapps/common/Don't Starve Together/data/databundles/images.zip")
+SCRAPBOOK_ATLASES = ("scrapbook_icons1", "scrapbook_icons2", "scrapbook_icons3")
 
 ICONS = {
     "deerclops": "deerclops.tex",
@@ -61,6 +65,16 @@ def lua_string(value: str) -> str:
     return '"' + value + '"'
 
 
+def read_scrapbook_atlases() -> dict:
+    found = {}
+    with zipfile.ZipFile(IMAGES) as z:
+        for atlas in SCRAPBOOK_ATLASES:
+            xml = z.read(f"images/{atlas}.xml").decode("utf-8", "ignore")
+            for name in re.findall(r'<Element name="([^"]+)"', xml):
+                found[name] = f"images/{atlas}.xml"
+    return found
+
+
 def read_site_data() -> dict:
     script = (
         "const fs=require('fs');const ctx={window:{}};"
@@ -75,6 +89,7 @@ def main() -> int:
     data = read_site_data()
     bosses = data["bosses"]
     cats = data["cats"]
+    atlases = read_scrapbook_atlases()
 
     lines = [
         "-- Сгенерировано tools/build_mod_data.py из js/data.js — не править вручную.",
@@ -92,7 +107,9 @@ def main() -> int:
         lines.append("        planar = %s," % lua_string(b.get("planar_damage")))
         lines.append("        lore = %s," % lua_string(b.get("lore")))
         lines.append("        drops = %s," % lua_string(b.get("drops")))
-        lines.append("        icon = %s," % lua_string(ICONS.get(slug, "")))
+        icon = ICONS.get(slug, "")
+        lines.append("        icon = %s," % lua_string(icon))
+        lines.append("        atlas = %s," % lua_string(atlases.get(icon, "")))
         lines.append("    },")
     lines.append("}")
     lines.append("")

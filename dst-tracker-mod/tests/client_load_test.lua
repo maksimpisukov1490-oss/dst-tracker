@@ -21,6 +21,7 @@ local function widget_class(name)
     c.Show = function(self) self.hidden = false end
     c.Hide = function(self) self.hidden = true end
     c.Kill = function(self) self.killed = true end
+    c.KillAllChildren = function(self) self.children = {} end
     c.MoveToFront = function() end
     c.MoveToBack = function() end
     c.SetOnClick = function(self, fn) self.onclick = fn end

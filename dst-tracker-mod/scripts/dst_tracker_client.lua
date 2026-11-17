@@ -98,17 +98,38 @@ local function category_name(id)
     return CATEGORY_NAMES[id] or id or ""
 end
 
+local SCRAPBOOK_ATLASES = {
+    "images/scrapbook_icons1.xml",
+    "images/scrapbook_icons2.xml",
+    "images/scrapbook_icons3.xml",
+}
+
 local function boss_icon(slug)
     local data = BOSS_DATA and BOSS_DATA[slug]
     local tex = data and data.icon or ""
-    if tex == "" or not GetScrapbookIconAtlas then
+    local atlas = data and data.atlas or ""
+    if tex == "" then
         return nil, nil
     end
-    local ok, atlas = pcall(GetScrapbookIconAtlas, tex)
-    if not ok or not atlas then
-        return nil, nil
+    if atlas ~= "" then
+        return atlas, tex
     end
-    return atlas, tex
+    if GetScrapbookIconAtlas then
+        local ok, atlas = pcall(GetScrapbookIconAtlas, tex)
+        if ok and atlas then
+            return atlas, tex
+        end
+    end
+    local sim = G.TheSim
+    if sim and sim.AtlasContains then
+        for _, atlas in ipairs(SCRAPBOOK_ATLASES) do
+            local ok, has = pcall(sim.AtlasContains, sim, atlas, tex)
+            if ok and has then
+                return atlas, tex
+            end
+        end
+    end
+    return nil, nil
 end
 
 local function boss_count(snapshot, slug)
@@ -138,14 +159,13 @@ local DSTTrackerScreen = Class(Screen, function(self)
     self.cards = {}
     self.categoryButtons = {}
 
-    self.black = self:AddChild(ImageButton("images/global.xml", "square.tex"))
-    self.black.image:SetVRegPoint(ANCHOR_MIDDLE)
-    self.black.image:SetHRegPoint(ANCHOR_MIDDLE)
-    self.black.image:SetVAnchor(ANCHOR_MIDDLE)
-    self.black.image:SetHAnchor(ANCHOR_MIDDLE)
-    self.black.image:SetScaleMode(SCALEMODE_FILLSCREEN)
-    self.black.image:SetTint(0, 0, 0, .84)
-    self.black:SetOnClick(function() self:Close() end)
+    self.black = self:AddChild(Image("images/global.xml", "square.tex"))
+    self.black:SetVRegPoint(ANCHOR_MIDDLE)
+    self.black:SetHRegPoint(ANCHOR_MIDDLE)
+    self.black:SetVAnchor(ANCHOR_MIDDLE)
+    self.black:SetHAnchor(ANCHOR_MIDDLE)
+    self.black:SetScaleMode(SCALEMODE_FILLSCREEN)
+    self.black:SetTint(0, 0, 0, .84)
 
     self.proot = self:AddChild(Widget("ROOT"))
     self.proot:SetVAnchor(ANCHOR_MIDDLE)
@@ -262,12 +282,14 @@ local DSTTrackerScreen = Class(Screen, function(self)
 
     -- Модальная запись босса, как на сайте.
     self.detailRoot = self.proot:AddChild(Widget("detail"))
+    self.detailRoot:SetPosition(0, -2000, 0)
     self.detailRoot:Hide()
 
-    self.detailDim = self.detailRoot:AddChild(Image("images/global.xml", "square.tex"))
-    self.detailDim:SetSize(1200, 660)
-    self.detailDim:SetTint(0, 0, 0, .55)
+    self.detailDim = self.detailRoot:AddChild(ImageButton("images/global.xml", "square.tex"))
+    self.detailDim.image:SetSize(1200, 660)
+    self.detailDim.image:SetTint(0, 0, 0, .55)
     self.detailDim:SetPosition(0, 0, 0)
+    self.detailDim:SetOnClick(function() end)
 
     self.detailOuter = self.detailRoot:AddChild(Image("images/global.xml", "square.tex"))
     self.detailOuter:SetSize(770, 510)
@@ -355,6 +377,7 @@ end
 function DSTTrackerScreen:CloseDetail()
     self.detailOpen = false
     self.detailRoot:Hide()
+    self.detailRoot:SetPosition(0, -2000, 0)
     local card = self.cards[self.focusIndex]
     if card then
         card:SetFocus()
@@ -493,9 +516,6 @@ function DSTTrackerScreen:MakeCard(slug, x, y, index)
         local icon = card:AddChild(Image(atlas, tex))
         icon:SetSize(70, 70)
         icon:SetPosition(0, 20, 0)
-        if not on then
-            icon:SetTint(0, 0, 0, .88)
-        end
     else
         local q = card:AddChild(Text(CHATFONT, 36, "?", on and INK or INK_SOFT))
         q:SetPosition(0, 20, 0)
@@ -522,13 +542,7 @@ function DSTTrackerScreen:MakeCard(slug, x, y, index)
 end
 
 function DSTTrackerScreen:BuildGrid()
-    if self.gridRoot then
-        self.gridRoot:Kill()
-    end
-    self.gridRoot = self.proot:AddChild(Widget("grid"))
-    if self.detailRoot then
-        self.detailRoot:MoveToFront()
-    end
+    self.gridRoot:KillAllChildren()
     self.cards = {}
 
     local filtered = self:Filtered()
@@ -576,6 +590,7 @@ function DSTTrackerScreen:BuildGrid()
         self.focusIndex = 1
         self.detailOpen = false
         self.detailRoot:Hide()
+        self.detailRoot:SetPosition(0, -2000, 0)
     end
 end
 
@@ -583,6 +598,7 @@ function DSTTrackerScreen:ShowBoss(slug)
     self.selectedSlug = slug
     self:UpdateDetail(slug)
     self.detailOpen = true
+    self.detailRoot:SetPosition(0, 0, 0)
     self.detailRoot:Show()
     if self.detailClose and self.detailClose.SetFocus then
         self.detailClose:SetFocus()
