@@ -13,6 +13,13 @@ local function widget_class(name)
     c.SetVAlign = function(self, v) self.valign = v end
     c.SetString = function(self, v) self.text = v end
     c.SetText = function(self, v) self.text = v end
+    c.SetTruncatedString = function(self, v) self.text = v end
+    c.SetRegionSize = function() end
+    c.EnableWordWrap = function() end
+    c.SetColour = function() end
+    c.SetTexture = function(self, atlas, tex) self.atlas, self.tex = atlas, tex end
+    c.Show = function(self) self.hidden = false end
+    c.Hide = function(self) self.hidden = true end
     c.SetOnClick = function(self, fn) self.onclick = fn end
     c.SetScaleMode = function(self, v) self.scalemode = v end
     c.SetTint = function(self, r, g, b, a) self.tint = { r, g, b, a } end
@@ -40,6 +47,7 @@ local widgets = {
     ["widgets/screen"] = widget_class("screen"),
     ["widgets/widget"] = widget_class("widget"),
     ["widgets/text"] = widget_class("text"),
+    ["widgets/image"] = widget_class("image"),
     ["widgets/imagebutton"] = widget_class("imagebutton"),
     ["widgets/scrollablelist"] = widget_class("scrollablelist"),
     ["widgets/redux/templates"] = {
@@ -67,13 +75,33 @@ local env = {
     end,
     AddClassPostConstruct = function(name, fn) hooks[name] = fn end,
     STRINGS = { NAMES = { WILLOW = "Уиллоу", WILSON = "Уилсон" } },
-    UICOLOURS = { GOLD = {}, GOLD_SELECTED = {}, GREY = {} },
+    UICOLOURS = {
+        GOLD = {}, GOLD_SELECTED = {}, GOLD_UNIMPORTANT = {}, GOLD_CLICKABLE = {},
+        GREY = {}, BROWN_DARK = {}, EGGSHELL = {},
+    },
     CHATFONT = "chat",
     ANCHOR_LEFT = 1, ANCHOR_RIGHT = 2, ANCHOR_MIDDLE = 3, ANCHOR_TOP = 4,
     SCALEMODE_FILLSCREEN = 1, SCALEMODE_PROPORTIONAL = 2,
     CONTROL_CANCEL = 99,
     BOSS_ORDER = { "deerclops", "bearger" },
     BOSS_NAMES = { deerclops = "Циклоп-олень", bearger = "Медведь-барсук" },
+    BOSS_CATEGORIES = {
+        { id = "all", name = "Все чудовища", short = "Все" },
+        { id = "giants", name = "Сезонные гиганты", short = "Гиганты" },
+    },
+    BOSS_DATA = {
+        deerclops = {
+            name = "Циклоп-олень", category = "giants", hp = "4000",
+            damage = "75", planar = "", lore = "Ледяной исполин.",
+            drops = "Мясо, глаз", icon = "deerclops.tex",
+        },
+        bearger = {
+            name = "Медведь-барсук", category = "giants", hp = "6000",
+            damage = "87.5", planar = "", lore = "Осенний разоритель.",
+            drops = "Мясо, мех", icon = "bearger.tex",
+        },
+    },
+    GetScrapbookIconAtlas = function() return "images/scrapbook_icons1.xml" end,
     Tracker = { MARK_COUNT = 51 },
     TheFrontEnd = { PushScreen = function() end, PopScreen = function() end },
     GetModRPC = function() return {} end,

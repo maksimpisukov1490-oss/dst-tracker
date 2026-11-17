@@ -155,6 +155,17 @@ if env.Tracker.MARK_COUNT ~= #env.Tracker.MARKS then
     os.exit(1)
 end
 
+local boss_count = 0
+for _ in pairs(env.BOSS_DATA or {}) do boss_count = boss_count + 1 end
+if boss_count ~= 36 then
+    print("FAIL boss data count: " .. tostring(boss_count))
+    os.exit(1)
+end
+if not env.BOSS_CATEGORIES or #env.BOSS_CATEGORIES ~= 5 then
+    print("FAIL boss categories")
+    os.exit(1)
+end
+
 local rpc = rpc_handlers["dst_tracker.request_snapshot"]
 if not rpc then
     print("FAIL request_snapshot rpc")
@@ -174,4 +185,4 @@ if #uniq > 0 then
     print("FAIL sandbox: модуль читает отсутствующие глобалы: " .. table.concat(uniq, ", "))
     os.exit(1)
 end
-print("OK persisted=" .. tostring(engine.persisted) .. " snapshot=" .. tostring(#snap) .. " marks=" .. tostring(env.Tracker.MARK_COUNT) .. " rpc=" .. tostring(#rpc_sent.data))
+print("OK persisted=" .. tostring(engine.persisted) .. " snapshot=" .. tostring(#snap) .. " marks=" .. tostring(env.Tracker.MARK_COUNT) .. " bosses=" .. tostring(boss_count) .. " rpc=" .. tostring(#rpc_sent.data))

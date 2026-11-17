@@ -3,6 +3,7 @@
 -- в глобалы окружения (Tracker, BOSS_MAP), поэтому просто подгружаем их.
 
 modimport("scripts/boss_map")
+modimport("scripts/boss_data")
 modimport("scripts/dst_tracker")
 
 local NAMESPACE = "dst_tracker"
