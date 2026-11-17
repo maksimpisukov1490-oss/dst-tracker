@@ -9,7 +9,7 @@ local G = GLOBAL
 local pcall, tonumber, next = G.pcall, G.tonumber, G.next
 local setmetatable, getmetatable, assert = G.setmetatable, G.getmetatable, G.assert
 
-local MOD_VERSION = "1.3.1"
+local MOD_VERSION = "1.3.2"
 
 -- Идентификатор запуска сервера: сайт по нему понимает, что счётчики
 -- начались заново, и не путает новую сессию со старой.

@@ -15,6 +15,16 @@ local NAMESPACE = "dst_tracker"
 -- В клиентском окружении мода игровые константы лежат в GLOBAL,
 -- а не всегда доступны как обычные глобалы.
 local G = GLOBAL
+local tonumber = G.tonumber
+local tostring = G.tostring
+local pairs = G.pairs
+local ipairs = G.ipairs
+local type = G.type
+local pcall = G.pcall
+local string = G.string
+local table = G.table
+local math = G.math
+
 local ANCHOR_MIDDLE = G.ANCHOR_MIDDLE or 0
 local ANCHOR_LEFT = G.ANCHOR_LEFT or 1
 local ANCHOR_RIGHT = G.ANCHOR_RIGHT or 2
