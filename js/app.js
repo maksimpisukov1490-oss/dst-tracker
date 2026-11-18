@@ -12,6 +12,7 @@
   var CHARACTERS = window.CHARACTERS || [];
   var MILESTONES = window.MILESTONES || { groups: [], items: [] };
   var SKILL_TREES = window.SKILL_TREES || {};
+  var CRAFT = window.CRAFT_DATA || { categories: [], recipes: {}, by_product: {}, used_in: {} };
   var CHAR_ALIASES = { wathgrithr: 'wigfrid', waxwell: 'maxwell' };
   var APP_VERSION = window.APP_VERSION || '1.0.0';
   var APP_BUILD = window.APP_BUILD || '';
@@ -66,7 +67,9 @@
     marks: {},
     pickChar: '',
     pickName: '',
-    variantPick: {}
+    variantPick: {},
+    craftCat: 'all',
+    craftPage: 1
   };
 
   function newRun(name, char) {
@@ -333,7 +336,23 @@
   function renderHead() {
     var isProgress = state.tab === 'progress';
     var isSkills = state.tab === 'skills';
-    if (els.toolbar) els.toolbar.hidden = isProgress || isSkills;
+    var isCraft = state.tab === 'craft';
+    if (els.toolbar) {
+      els.toolbar.hidden = isProgress || isSkills;
+      els.toolbar.classList.toggle('is-craft', isCraft);
+    }
+    if (isCraft) {
+      var total = Object.keys(CRAFT.recipes || {}).length;
+      els.search.placeholder = 'Найти рецепт…';
+      els.title.textContent = 'Книга рецептов';
+      els.hint.textContent = 'Все рецепты DST: из чего делается и где используется';
+      els.pCount.textContent = total;
+      els.pPercent.textContent = '';
+      els.pFill.style.width = '0%';
+      els.pCaption.textContent = 'Рецептов в книге';
+      return;
+    }
+    els.search.placeholder = 'Найти чудовище…';
     if (isSkills) {
       var tree = skillTreeForCurrent();
       var st = skillStats(tree, currentRun() && currentRun().skills);
@@ -437,6 +456,12 @@
           ? (p.total ? p.total + ' вид.' : '—')
           : p.done + '/' + p.total) + '</span></button>';
     });
+    var craftTotal = Object.keys(CRAFT.recipes || {}).length;
+    if (craftTotal) {
+      html += '<button class="tab' + (state.tab === 'craft' ? ' is-on' : '') + '" data-tab="craft">' +
+        '<span class="tab__icon" aria-hidden="true">⚒</span>Крафт' +
+        '<span class="tab__count">' + craftTotal + '</span></button>';
+    }
     els.tabs.innerHTML = html;
   }
 
@@ -488,6 +513,7 @@
     if (state.tab === 'progress') { renderProgress(); return; }
     if (state.tab === 'skills') { renderSkills(); return; }
     if (state.tab === 'chronicle') { renderChronicle(); return; }
+    if (state.tab === 'craft') { renderCraft(); return; }
     var list = visible();
     els.grid.hidden = false;
     els.grid.innerHTML = list.map(cardHtml).join('');
@@ -883,7 +909,153 @@
       '<div class="fact__v">' + esc(v) + '</div></div>';
   }
 
+  /* ---------- книга рецептов ---------- */
+
+  function craftCatName(id) {
+    var cats = CRAFT.categories || [];
+    for (var i = 0; i < cats.length; i++) if (cats[i].id === id) return cats[i].name;
+    return id;
+  }
+
+  function craftFiltered() {
+    var q = state.query.trim().toLowerCase();
+    var out = [];
+    Object.keys(CRAFT.recipes || {}).forEach(function (id) {
+      var r = CRAFT.recipes[id];
+      if (!r) return;
+      if (state.craftCat !== 'all' && r.category !== state.craftCat) return;
+      if (q) {
+        var hay = ((r.name || '') + ' ' + (r.name_en || '') + ' ' + (r.id || '')).toLowerCase();
+        if (hay.indexOf(q) === -1) return;
+      }
+      out.push(r);
+    });
+    out.sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'ru'); });
+    return out;
+  }
+
+  function craftIconHtml(r, cls) {
+    if (r && r.icon) return '<img class="' + cls + '" src="' + esc(r.icon) + '" alt="" loading="lazy">';
+    return '<span class="' + cls + ' craft-icon--empty">⚒</span>';
+  }
+
+  function craftCardHtml(r) {
+    var meta = craftCatName(r.category);
+    if (r.tech_text) meta += ' · ' + r.tech_text;
+    return '<button class="craft-card" data-craft="' + esc(r.id) + '">' +
+      '<span class="craft-card__icon">' + craftIconHtml(r, 'craft-card__img') + '</span>' +
+      '<span class="craft-card__body">' +
+        '<span class="craft-card__name">' + esc(r.name) + '</span>' +
+        '<span class="craft-card__meta">' + esc(meta) + '</span>' +
+        (r.builder_text ? '<span class="craft-card__builder">' + esc(r.builder_text) + '</span>' : '') +
+      '</span></button>';
+  }
+
+  function renderCraft() {
+    var list = craftFiltered();
+    var per = 60;
+    var page = Math.max(1, parseInt(state.craftPage, 10) || 1);
+    var shown = list.slice(0, page * per);
+    var cats = (CRAFT.categories || []).map(function (c) {
+      return '<button class="craft-cat' + (state.craftCat === c.id ? ' is-on' : '') +
+        '" data-craftcat="' + esc(c.id) + '">' + esc(c.name) +
+        '<span>' + c.count + '</span></button>';
+    }).join('');
+    var cards = shown.map(craftCardHtml).join('');
+    var more = list.length > shown.length
+      ? '<button class="btn craft-more" data-craftmore="1">Показать ещё</button>'
+      : '';
+    els.grid.hidden = false;
+    els.empty.hidden = true;
+    els.grid.innerHTML = '<div class="craft">' +
+      '<div class="craft__cats">' + cats + '</div>' +
+      '<p class="craft__count">Найдено: ' + list.length + '</p>' +
+      (cards ? '<div class="craft__grid">' + cards + '</div>' : '<p class="craft__empty">Ничего не найдено.</p>') +
+      more + '</div>';
+  }
+
+  function craftTreeItem(ing, depth, path) {
+    var rid = (CRAFT.tree_by_product && CRAFT.tree_by_product[ing.id]) || (CRAFT.recipes[ing.id] ? ing.id : null);
+    var r = rid ? CRAFT.recipes[rid] : null;
+    var icon = ing.icon || (r && r.icon) || '';
+    var label = esc(ing.name) + (ing.qty ? ' ×' + ing.qty : '');
+    var children = '';
+    if (r && depth < 5 && !path[rid]) {
+      path[rid] = true;
+      children = '<ul>' + (r.ingredients || []).map(function (x) {
+        return craftTreeItem(x, depth + 1, path);
+      }).join('') + '</ul>';
+      delete path[rid];
+    }
+    return '<li>' +
+      (icon ? '<img class="craft-tree__icon" src="' + esc(icon) + '" alt="">' : '<span class="craft-tree__dot"></span>') +
+      '<span class="craft-tree__name">' + label + '</span>' +
+      (r ? '<span class="craft-tree__note">' + esc(r.tech_text) + '</span>' : '') +
+      children + '</li>';
+  }
+
+  function craftUsedHtml(r) {
+    var ids = [];
+    var seen = {};
+    var sources = [r.product, r.id, r.name_en];
+    sources.forEach(function (key) {
+      (CRAFT.used_in[key] || []).forEach(function (id) {
+        if (CRAFT.recipes[id] && !seen[id]) { seen[id] = true; ids.push(id); }
+      });
+    });
+    if (!ids.length) return '<p class="craft-used__empty">Пока нигде не используется.</p>';
+    var shown = ids.slice(0, 12);
+    var more = ids.length > shown.length
+      ? '<p class="craft-used__more">…и ещё ' + (ids.length - shown.length) + '</p>'
+      : '';
+    return '<div class="craft-used__list">' + shown.map(function (id) {
+      var u = CRAFT.recipes[id];
+      return '<button class="craft-used__item" data-craft="' + esc(id) + '">' +
+        craftIconHtml(u, 'craft-used__img') + '<span>' + esc(u.name) + '</span></button>';
+    }).join('') + '</div>' + more;
+  }
+
+  function craftEntryHtml(r) {
+    var meta = [craftCatName(r.category), r.tech_text, r.builder_text].filter(Boolean).join(' · ');
+    var path = {};
+    path[r.id] = true;
+    var tree = (r.ingredients || []).map(function (ing) {
+      return craftTreeItem(ing, 1, path);
+    }).join('');
+    return '<div class="craft-detail">' +
+      '<div class="craft-detail__head">' +
+        '<div class="craft-detail__icon">' + craftIconHtml(r, 'craft-detail__img') + '</div>' +
+        '<div class="craft-detail__title">' +
+          '<h2 id="entry-name">' + esc(r.name) + '</h2>' +
+          '<p class="entry__latin">' + esc(r.name_en || '') + '</p>' +
+          '<p class="craft-detail__meta">' + esc(meta) + '</p>' +
+        '</div>' +
+      '</div>' +
+      '<div class="craft-detail__cols">' +
+        '<section class="craft-detail__tree"><h3>Из чего делается</h3>' +
+          '<ul class="craft-tree">' + tree + '</ul></section>' +
+        '<section class="craft-detail__used"><h3>Используется в</h3>' + craftUsedHtml(r) + '</section>' +
+      '</div></div>';
+  }
+
+  function openCraftEntry(id) {
+    var r = CRAFT.recipes[id];
+    if (!r) return;
+    var prev = document.getElementById('entry-prev');
+    var next = document.getElementById('entry-next');
+    if (prev) prev.hidden = true;
+    if (next) next.hidden = true;
+    els.entryBody.innerHTML = craftEntryHtml(r);
+    els.entry.hidden = false;
+    document.body.style.overflow = 'hidden';
+    els.entryBody.parentNode.scrollTop = 0;
+  }
+
   function openEntry(slug) {
+    var prev = document.getElementById('entry-prev');
+    var next = document.getElementById('entry-next');
+    if (prev) prev.hidden = false;
+    if (next) next.hidden = false;
     var b = null;
     for (var i = 0; i < BOSSES.length; i++) if (BOSSES[i].slug === slug) { b = BOSSES[i]; break; }
     if (!b) return;
@@ -1164,6 +1336,8 @@
   }
 
   function step(dir) {
+    var prev = document.getElementById('entry-prev');
+    if (prev && prev.hidden) return;
     var list = navList();
     if (!list.length) return;
     var idx = -1;
@@ -1307,6 +1481,9 @@
     var t = e.target.closest('.tab');
     if (!t) return;
     state.tab = t.dataset.tab;
+    state.query = '';
+    if (els.search) els.search.value = '';
+    if (state.tab === 'craft') state.craftPage = 1;
     save();
     renderAll();
   });
@@ -1327,6 +1504,7 @@
     clearTimeout(searchTimer);
     searchTimer = setTimeout(function () {
       state.query = els.search.value;
+      if (state.tab === 'craft') state.craftPage = 1;
       renderGrid();
     }, 120);
   });
@@ -1343,6 +1521,21 @@
   });
 
   els.grid.addEventListener('click', function (e) {
+    var craftCat = e.target.closest('[data-craftcat]');
+    if (craftCat) {
+      state.craftCat = craftCat.dataset.craftcat;
+      state.craftPage = 1;
+      renderGrid();
+      return;
+    }
+    var craftMore = e.target.closest('[data-craftmore]');
+    if (craftMore) {
+      state.craftPage = (parseInt(state.craftPage, 10) || 1) + 1;
+      renderGrid();
+      return;
+    }
+    var craft = e.target.closest('[data-craft]');
+    if (craft) { openCraftEntry(craft.dataset.craft); return; }
     var mark = e.target.closest('[data-mark]');
     if (mark) { toggleMark(mark.dataset.mark); return; }
     var c = e.target.closest('[data-slug]');
@@ -1351,6 +1544,8 @@
 
   els.entry.addEventListener('click', function (e) {
     if (e.target.hasAttribute('data-close')) { closeEntry(); return; }
+    var craft = e.target.closest('[data-craft]');
+    if (craft) { openCraftEntry(craft.dataset.craft); return; }
     var q = e.target.closest('.qhead');
     if (q) {
       var idx = q.dataset.q;

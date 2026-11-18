@@ -23,6 +23,7 @@ ASSETS = (
     "css/style.css",
     "js/data.js",
     "js/skills.js",
+    "js/craft.js",
     "js/version.js",
     "js/app.js",
 )
