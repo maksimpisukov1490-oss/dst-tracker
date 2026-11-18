@@ -16,7 +16,7 @@
     if (c.id === 'progress') {
       return {
         id: 'progress', name: c.name, short: c.short, icon: c.icon,
-        hint: 'Боссы, жемчужина отшельницы и четыре цепочки: лунная и теневая'
+        hint: 'Боссы, жемчужина отшельницы и две ветки: лунная и теневая'
       };
     }
     return c;
@@ -41,7 +41,6 @@
     fw_key: ['ancient_guardian'],
     fw_summon: ['ancient_fuelweaver']
   };
-  var CHAIN_IDS = ['wagstaff', 'charlie', 'celestial_champion', 'ancient_fuelweaver'];
   var BRANCH_BOSSES = {
     lunar: [
       'celestial_champion', 'celestial_scion', 'celestial_revenant',
@@ -356,9 +355,18 @@
     };
   }
 
-  // Общий прогресс: боссы + жемчужина отшельницы + четыре квестовые цепочки.
+  function mergedBranchGroup(br, groups) {
+    var items = [];
+    (groups || []).forEach(function (g) {
+      if (g.branch !== br.id || g.id === 'hermit') return;
+      items = items.concat(g.items || []);
+    });
+    return { id: 'branch_' + br.id, name: br.name, branch: br.id, items: items };
+  }
+
+  // Общий прогресс: боссы + жемчужина отшельницы + две квестовые ветки.
   function progressFor(kills, marks) {
-    var total = BOSSES.length + 1 + CHAIN_IDS.length;
+    var total = BOSSES.length + 1 + (MILESTONE_BRANCHES || []).length;
     var done = 0;
     BOSSES.forEach(function (b) {
       var k = kills && kills[b.slug];
@@ -370,10 +378,9 @@
       (g.items || []).forEach(function (it) { if (marks && marks[it.id]) raw++; });
       if (raw >= groupLimit(g)) done++;
     });
-    CHAIN_IDS.forEach(function (id) {
-      var g = null;
-      (MILESTONES.groups || []).forEach(function (x) { if (x.id === id) g = x; });
-      if (g && chainState(g, kills, state.chainDone).complete) done++;
+    (MILESTONE_BRANCHES || []).forEach(function (br) {
+      var merged = mergedBranchGroup(br, MILESTONES.groups || []);
+      if (merged.items.length && chainState(merged, kills, state.chainDone).complete) done++;
     });
     return { done: done, total: total, pct: total ? Math.round(done * 100 / total) : 0 };
   }
@@ -393,20 +400,25 @@
 
   function chainState(g, kills, manual) {
     var items = g.items || [];
-    var last = -1;
-    items.forEach(function (it, i) {
-      if (chainStepDone(it, kills, manual)) last = i;
+    var doneMap = {};
+    var done = 0;
+    var next = null;
+    items.forEach(function (it) {
+      if (chainStepDone(it, kills, manual)) {
+        doneMap[it.id] = true;
+        done++;
+      } else if (!next) {
+        next = it;
+      }
     });
-    var done = last + 1;
-    var complete = done >= items.length;
     return {
       items: items,
-      last: last,
+      doneMap: doneMap,
       done: done,
       total: items.length,
       pct: items.length ? Math.round(done * 100 / items.length) : 0,
-      complete: complete,
-      next: complete ? null : items[done]
+      complete: done >= items.length,
+      next: next
     };
   }
 
@@ -1138,18 +1150,11 @@
     return html;
   }
 
-  function chainCard(g) {
-    var st = chainState(g, state.kills, state.chainDone);
-    var html = '<div class="pbar-card chain">' +
-      '<div class="pbar-card__head"><h3>' +
-      (g.icon_img ? '<img class="pbar-card__iconimg" src="' + esc(g.icon_img) + '" alt="">' : '') +
-      esc(g.name) + '</h3>' +
-      '<span class="pbar-card__num">' + st.done + ' / ' + st.total + ' · ' + st.pct + '%</span></div>' +
-      '<div class="progress__bar"><i style="width:' + st.pct + '%"></i></div>';
-
+  function chainBody(g, st) {
+    var html = '';
     if (st.complete) {
       html += '<div class="chain__next chain__next--done">' +
-        '<span class="chain__next-label">Цепочка пройдена</span>' +
+        '<span class="chain__next-label">Ветка пройдена</span>' +
         '<p class="chain__next-note">Все ' + st.total + ' шагов закрыты.</p></div>';
     } else if (st.next) {
       html += '<div class="chain__next">' +
@@ -1169,8 +1174,8 @@
       '<summary class="chain__toggle"><span>Показать весь путь</span>' +
       '<span class="chain__toggle-count">' + st.total + ' шагов</span></summary>' +
       '<ol class="chain__steps">' + st.items.map(function (it, i) {
-        var done = i <= st.last;
-        var next = i === st.last + 1;
+        var done = !!st.doneMap[it.id];
+        var next = !!(st.next && st.next.id === it.id);
         var cls = 'chain__step' + (done ? ' is-done' : (next ? ' is-next' : ''));
         var btn = '';
         if (done && state.chainDone && state.chainDone[it.id]) {
@@ -1183,18 +1188,16 @@
           '<span class="chain__step-body"><b>' + esc(it.name) + '</b>' +
           (it.note ? '<span class="chain__note">' + esc(it.note) + '</span>' : '') +
           '</span>' + btn + '</li>';
-      }).join('') + '</ol></details>';
-
-    return html + '</div>';
+      }).join('') + '</ol>' +
+      '<button class="btn btn--ghost chain__back" data-pathclose="1">Назад</button>' +
+      '</details>';
+    return html;
   }
 
   function branchSection(br, groups) {
-    var chains = groups.filter(function (g) {
-      return g.branch === br.id && g.id !== 'hermit';
-    });
-    if (!chains.length) return '';
-    var complete = 0;
-    chains.forEach(function (g) { if (chainState(g, state.kills, state.chainDone).complete) complete++; });
+    var merged = mergedBranchGroup(br, groups);
+    if (!merged.items.length) return '';
+    var st = chainState(merged, state.kills, state.chainDone);
     var name = br.id === 'lunar' ? 'Лунная ветка' : (br.id === 'shadow' ? 'Теневая ветка' : br.name);
     var icon = br.id === 'lunar' ? '☀' : (br.id === 'shadow' ? '☾' : '✦');
 
@@ -1211,13 +1214,15 @@
     }).join('');
 
     return '<div class="branch">' +
-      '<div class="branch__head"><h3>' + icon + ' ' + esc(name) + '</h3>' +
-      '<p>' + esc(br.hint || '') + '</p>' +
-      '<span class="branch__num">Цепочки: ' + complete + ' / ' + chains.length + '</span></div>' +
-      (bossChips ? '<div class="branch__bosses"><span class="branch__bosses-label">Боссы ветки</span>' +
-        '<div class="branch__bosslist">' + bossChips + '</div></div>' : '') +
-      chains.map(chainCard).join('') +
-      '</div>';
+      '<div class="pbar-card branch-card">' +
+        '<div class="branch__head"><h3>' + icon + ' ' + esc(name) + '</h3>' +
+        '<p>' + esc(br.hint || '') + '</p>' +
+        '<span class="branch__num">' + st.done + ' / ' + st.total + ' · ' + st.pct + '%</span></div>' +
+        '<div class="progress__bar"><i style="width:' + st.pct + '%"></i></div>' +
+        (bossChips ? '<div class="branch__bosses"><span class="branch__bosses-label">Боссы ветки</span>' +
+          '<div class="branch__bosslist">' + bossChips + '</div></div>' : '') +
+        chainBody(merged, st) +
+      '</div></div>';
   }
 
   function renderProgress() {
@@ -1231,10 +1236,10 @@
 
     var html = '<div class="progress-view">';
     html += pbarCard('Общий прогресс', o,
-      'Боссы + жемчужина отшельницы + четыре квестовые цепочки. 100% — всё закрыто.');
+      'Боссы + жемчужина отшельницы + две квестовые ветки. 100% — всё закрыто.');
     html += pbarCard('Боссы', bp, 'Все записи компендиума.');
     html += '<p class="progress-note">Галочки — только у отшельницы. ' +
-      'Лунная и теневая цепочки идут по убитым боссам и показывают следующий шаг.</p>';
+      'Ветки идут по убитым боссам или кнопке «Выполнить шаг» и показывают следующий шаг.</p>';
 
     if (hermit) html += groupCard(hermit);
 
@@ -1798,6 +1803,12 @@
       state.char = '';
       save();
       renderAll();
+      return;
+    }
+    var pathClose = e.target.closest('[data-pathclose]');
+    if (pathClose) {
+      var det = pathClose.closest('details');
+      if (det) det.open = false;
       return;
     }
     var chainStep = e.target.closest('[data-chainstep]');

@@ -1110,3 +1110,13 @@ body{
   background:linear-gradient(rgba(120,140,80,.3), rgba(79,95,45,.35));
   border-color:#5b6a34; color:#26300f;
 }
+
+/* --- объединённая ветка: заголовок внутри карточки ---------- */
+.branch-card .branch__head{
+  background:none; border:0; box-shadow:none; border-radius:0;
+  padding:0 0 10px; border-bottom:2px solid rgba(122,85,40,.35);
+}
+.branch-card .branch__bosses{
+  margin-top:12px; background:rgba(255,251,238,.35); box-shadow:none;
+}
+.chain__back{ margin-top:12px; }
