@@ -241,17 +241,15 @@ def builder_text(tag: str | None) -> str:
     return BUILDER_LABELS.get(tag, "")
 
 
-def category_for(name: str, filters: dict) -> str:
-    if name in filters.get("CHARACTER", []):
-        return "character"
-    if name in filters.get("SPECIAL_EVENT", []):
-        return "event"
+def categories_for(name: str, filters: dict) -> list[str]:
+    found = []
     for filter_name, cat in FILTER_TO_CATEGORY.items():
-        if filter_name in ("CHARACTER", "SPECIAL_EVENT"):
-            continue
         if name in filters.get(filter_name, []):
-            return cat
-    return "other"
+            found.append(cat)
+    if not found:
+        return ["other"]
+    order = {cid: i for i, (cid, _) in enumerate(CATEGORY_ORDER)}
+    return sorted(set(found), key=lambda c: order.get(c, 999))
 
 
 def icon_path(prefab: str) -> str:
@@ -288,9 +286,10 @@ def main() -> int:
             continue
         product = r.get("product") or rid
         name_ru, name_en = pick_name(product, meta_names, po_names, r.get("nameoverride"))
-        cat = category_for(rid, filters)
-        if cat not in counts:
-            cat = "other"
+        cats = categories_for(rid, filters)
+        if not cats:
+            cats = ["other"]
+        cat = cats[0]
 
         ingredients = []
         for ing in ings_raw:
@@ -321,6 +320,7 @@ def main() -> int:
             "name_en": name_en,
             "product": product,
             "category": cat,
+            "categories": cats,
             "tech": r.get("tech") or {},
             "tech_text": tech_text(r.get("tech") or {}),
             "builder": r.get("builder_tag") or "",
@@ -328,7 +328,8 @@ def main() -> int:
             "icon": icon_path(product),
             "ingredients": ingredients,
         }
-        counts[cat] = counts.get(cat, 0) + 1
+        for c in cats:
+            counts[c] = counts.get(c, 0) + 1
 
         if product not in by_product:
             by_product[product] = rid

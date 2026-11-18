@@ -923,7 +923,10 @@
     Object.keys(CRAFT.recipes || {}).forEach(function (id) {
       var r = CRAFT.recipes[id];
       if (!r) return;
-      if (state.craftCat !== 'all' && r.category !== state.craftCat) return;
+      if (state.craftCat !== 'all') {
+        var cats = r.categories || (r.category ? [r.category] : []);
+        if (cats.indexOf(state.craftCat) === -1) return;
+      }
       if (q) {
         var hay = ((r.name || '') + ' ' + (r.name_en || '') + ' ' + (r.id || '')).toLowerCase();
         if (hay.indexOf(q) === -1) return;
@@ -1022,7 +1025,8 @@
   }
 
   function craftEntryHtml(r) {
-    var meta = [craftCatName(r.category), r.tech_text, r.builder_text].filter(Boolean).join(' · ');
+    var cats = (r.categories && r.categories.length ? r.categories : [r.category]).map(craftCatName).join(' · ');
+    var meta = [cats, r.tech_text, r.builder_text].filter(Boolean).join(' · ');
     var path = {};
     path[r.id] = true;
     var tree = (r.ingredients || []).map(function (ing) {
