@@ -119,10 +119,8 @@ def main() -> int:
     print("Готово. Дальше:")
     print("  1) В игре: «Моды» → включить «DST Compendium Sync» (для кнопки в паузе — и в клиентских модах).")
     print("     Для мира с пещерами включи мод на обоих шардах (лес и пещеры).")
-    print(f"  2) Запусти мост:  python3 tools/bridge.py")
-    print(f"  3) На сайте нажми кнопку «Игра».")
-    print(f"\nФайл прогресса: {sync_base} (+ -caves.json)")
-    print("Мост находит его сам, в том числе внутри Proton-префикса Steam.")
+    print("  2) В паузе появится кнопка «Компендиум» — экран боссов, квестов и навыков.")
+    print(f"\nСнимок прогресса мод пишет в: {sync_base} (+ -caves.json)")
     print("\nЕсли включаешь вручную, в modoverrides.lua мира добавь:")
     print('  return { ["%s"] = { enabled = true, configuration_options = {} } }' % MOD_DIR_NAME)
     return 0

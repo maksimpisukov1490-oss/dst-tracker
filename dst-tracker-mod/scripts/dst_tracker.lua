@@ -1,5 +1,6 @@
 -- DST Compendium Sync — ядро.
--- Пишет снимок прогресса в JSON, который читает tools/bridge.py.
+-- Ведёт учёт прогресса и отдаёт снимок экрану «Компендиум» по RPC;
+-- дополнительно пишет JSON-снимок состояния мира.
 --
 -- Песочница модов видит только часть глобалов: нет pcall, os, io, next,
 -- tonumber, setmetatable, assert, TheWorld, TheSim, TheShard, TheNet, AllPlayers.

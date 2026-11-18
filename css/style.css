@@ -196,18 +196,6 @@ body{
 }
 .progress__caption{ font-size:14px; color:#241a0d; }
 
-/* кнопка подключения к игре */
-.btn--sync{ display:inline-flex; align-items:center; gap:7px; }
-.btn__dot{
-  width:9px; height:9px; border-radius:50%;
-  background:#9b8a6d; box-shadow: inset 0 0 0 1px rgba(60,40,15,.35);
-  transition: background .2s, box-shadow .2s;
-}
-.btn--sync.is-on .btn__dot{ background:#4f7a34; box-shadow:0 0 0 3px rgba(79,122,52,.22); }
-.btn--sync.is-err .btn__dot{ background:#8e3226; box-shadow:0 0 0 3px rgba(142,50,38,.2); }
-.btn--sync.is-busy .btn__dot{ animation: syncpulse 1s ease-in-out infinite; }
-@keyframes syncpulse{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
-
 /* --- панель инструментов ----------------------------------- */
 .toolbar{
   display:flex; gap:14px; align-items:center; flex-wrap:wrap;
@@ -653,43 +641,6 @@ body{
 }
 @keyframes toastIn{ from{ opacity:0; transform:translate(-50%,10px);} to{ opacity:1; transform:translate(-50%,0);} }
 
-/* --- стартовый экран «Создать забег» ----------------------- */
-.start{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; padding:22px; }
-.start[hidden]{ display:none; }
-.start__backdrop{ position:absolute; inset:0; background:rgba(8,6,4,.86); backdrop-filter:blur(4px); }
-.start__page{
-  position:relative; width:min(980px,100%); max-height:calc(100vh - 44px);
-  overflow:auto; border-radius:var(--radius);
-  background-color: var(--paper);
-  background-image:
-    radial-gradient(90% 60% at 15% 0%, #f7edd4 0%, rgba(247,237,212,0) 60%),
-    radial-gradient(70% 60% at 100% 100%, #c2ac84 0%, rgba(194,172,132,0) 62%),
-    var(--fiber), var(--noise);
-  background-blend-mode: normal, normal, multiply, multiply;
-  color:var(--ink);
-  box-shadow: inset 0 0 90px rgba(88,60,28,.32), 0 30px 70px rgba(0,0,0,.7);
-  animation: pageIn .28s cubic-bezier(.2,.7,.2,1);
-}
-.start__page::after{
-  content:''; position:absolute; inset:0; pointer-events:none; border-radius:var(--radius);
-  border:1px solid rgba(122,85,40,.6); box-shadow: inset 0 0 0 6px rgba(122,85,40,.16);
-}
-.start__body{ padding:44px 42px 38px; }
-.start__title{ margin:0; font-family:var(--font-script); font-weight:700; font-size:clamp(34px,5vw,52px); line-height:1; color:#2b1f0e; }
-.start__lead{ margin:8px 0 0; color:var(--ink-2); font-size:16px; max-width:62ch; }
-.start__grid{ margin-top:22px; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:28px; align-items:start; }
-.start__col{ min-width:0; }
-.start__h3{ margin:0 0 10px; font-family:var(--font-script); font-weight:700; font-size:24px; color:#2f2210; }
-.start__label{ display:block; margin:0 0 6px; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-3); }
-.start__input{
-  width:100%; font-family:var(--font-hand); font-size:18px; color:var(--ink);
-  padding:10px 12px; margin-bottom:16px; border-radius:var(--radius);
-  background: linear-gradient(#f6ecd5,#e8dabb); border:1px solid #9c7f4f;
-  box-shadow: inset 0 2px 5px rgba(90,65,30,.25);
-}
-.start__input:focus{ outline:none; border-color:var(--gold); }
-.btn--big{ display:block; width:100%; margin-top:18px; font-family:var(--font-script); font-weight:700; font-size:24px; padding:10px 20px; }
-
 .picks{ display:grid; grid-template-columns:repeat(auto-fill,minmax(74px,1fr)); gap:8px; }
 .pick{
   cursor:pointer; padding:7px 4px 5px; border-radius:var(--radius); text-align:center;
@@ -702,40 +653,6 @@ body{
 .pick img{ display:block; width:100%; height:58px; object-fit:contain; filter: drop-shadow(0 3px 5px rgba(60,40,15,.35)); }
 .pick span{ display:block; margin-top:2px; }
 .pick.is-on{ background: linear-gradient(rgba(120,140,80,.35), rgba(79,95,45,.42)); border-color:#5b6a34; color:#26300f; font-weight:600; }
-
-.runlist{ display:flex; flex-direction:column; gap:8px; }
-.runitem{
-  display:flex; align-items:stretch; border-radius:var(--radius); overflow:hidden;
-  background: linear-gradient(rgba(255,251,238,.55), rgba(214,197,158,.4));
-  border:1px solid rgba(122,85,40,.42);
-}
-.runitem.is-current{ border-color:#5b6a34; box-shadow: inset 0 0 0 2px rgba(91,106,52,.35); }
-.runitem__open{
-  flex:1 1 auto; display:flex; align-items:center; gap:12px; text-align:left; cursor:pointer;
-  padding:9px 12px; background:none; border:0; font-family:var(--font-hand); color:var(--ink);
-}
-.runitem__open:hover{ background: rgba(184,145,47,.14); }
-.runitem__face{ width:38px; height:46px; object-fit:contain; filter: drop-shadow(0 3px 5px rgba(60,40,15,.35)); }
-.runitem__body{ display:flex; flex-direction:column; }
-.runitem__name{ font-family:var(--font-script); font-weight:700; font-size:22px; color:#2f2210; line-height:1.05; }
-.runitem__meta{ font-size:13px; color:var(--ink-2); }
-.runitem__del{
-  flex:0 0 38px; cursor:pointer; font-size:20px; color:#7a5528; background:none; border:0;
-  border-left:1px dashed rgba(122,85,40,.4);
-}
-.runitem__del:hover{ color:var(--blood); background: rgba(125,31,24,.08); }
-
-/* --- забег в шапке ----------------------------------------- */
-.bookmark__run{
-  display:flex; align-items:center; gap:8px; padding:3px 12px 3px 6px; border-radius:22px;
-  background: linear-gradient(rgba(58,49,38,.55), rgba(24,20,14,.75));
-  border:1px solid #5b4a30;
-}
-.bookmark__run[hidden]{ display:none; }
-.bookmark__run img{ width:26px; height:32px; object-fit:contain; }
-.bookmark__run-body{ display:flex; flex-direction:column; line-height:1.12; }
-.bookmark__run-name{ font-family:var(--font-script); font-weight:700; font-size:17px; color:#f0e2c0; }
-.bookmark__run-char{ font-size:12px; color:#9b8a6b; }
 
 /* --- цитаты: головы персонажей ----------------------------- */
 .quotes h4{ margin:0; padding:14px 16px 10px; font-family:var(--font-script); font-weight:700; font-size:24px; color:#2f2210; }
@@ -787,8 +704,6 @@ body{
   .entry__grid{ grid-template-columns:1fr; gap:22px; }
   .entry__left{ position:static; max-width:340px; margin:0 auto; }
   .entry__nav--prev{ left:2px; } .entry__nav--next{ right:2px; }
-  .start__grid{ grid-template-columns:1fr; gap:22px; }
-  .start__body{ padding:34px 22px 30px; }
 }
 @media (max-width: 620px){
   .bookmark{ flex-wrap:wrap; padding:18px 16px 4px; }
@@ -801,9 +716,6 @@ body{
   .entry__page{ max-height:calc(100vh - 16px); }
   .entry__body{ padding:30px 16px 26px; }
   .colophon{ padding:0 16px 34px; }
-  .start{ padding:8px; }
-  .start__page{ max-height:calc(100vh - 16px); }
-  .start__body{ padding:28px 16px 24px; }
   .picks{ grid-template-columns:repeat(auto-fill,minmax(62px,1fr)); }
 }
 @media (prefers-reduced-motion: reduce){
@@ -899,7 +811,6 @@ body{
   paint-order:stroke; stroke:rgba(0,0,0,.55); stroke-width:3px;
 }
 .colophon__version{ opacity:.8; letter-spacing:.5px; }
-.start__version{ margin:22px 0 0; text-align:center; font-size:13px; color:var(--ink-2); }
 
 /* замки путей: свой SVG-замочек в стиле компендиума */
 .sknode__lockmark path,
@@ -1042,3 +953,18 @@ body{
   .craft-detail__img{ width:64px; height:64px; }
 }
 .craft-used__more{ margin:8px 0 0; font-size:12px; color:#7b6340; }
+
+
+/* --- навыки: выбор персонажа ------------------------------- */
+.skillpick{
+  grid-column:1 / -1; padding:22px; border-radius:var(--radius);
+  background: linear-gradient(rgba(255,251,238,.55), rgba(214,197,158,.35));
+  border:1px solid rgba(122,85,40,.4);
+}
+.skillpick__title{
+  margin:0; font-family:var(--font-script); font-weight:700;
+  font-size:28px; color:#2f2210;
+}
+.skillpick__lead{ margin:6px 0 16px; color:var(--ink-2); font-size:15px; }
+.skillpick .picks{ grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); }
+.skilltree__change{ margin-left:auto; }

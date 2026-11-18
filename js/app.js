@@ -41,17 +41,8 @@
     toolbar: document.getElementById('toolbar'),
     entry: document.getElementById('entry'),
     entryBody: document.getElementById('entry-body'),
-    start: document.getElementById('start'),
-    startBody: document.getElementById('start-body'),
-    runNow: document.getElementById('run-now'),
-    runNowImg: document.getElementById('run-now-img'),
-    runNowName: document.getElementById('run-now-name'),
-    runNowChar: document.getElementById('run-now-char'),
     toast: document.getElementById('toast'),
-    fileInput: document.getElementById('file-input'),
-    syncFileInput: document.getElementById('sync-file-input'),
-    file: document.getElementById('btn-file'),
-    sync: document.getElementById('btn-sync')
+    fileInput: document.getElementById('file-input')
   };
 
   /* ---------- состояние ---------- */
@@ -61,31 +52,14 @@
     filter: 'all',
     query: '',
     silhouettes: true,
-    runs: [],
-    currentRunId: null,
+    char: '',
+    skills: null,
     kills: {},
     marks: {},
-    pickChar: '',
-    pickName: '',
     variantPick: {},
     craftCat: 'all',
     craftPage: 1
   };
-
-  function newRun(name, char) {
-    return {
-      id: 'run-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      name: name,
-      char: char || '',
-      player: '',
-      worldName: '',
-      auto: false,
-      day: 0,
-      createdAt: today(),
-      kills: {},
-      marks: {}
-    };
-  }
 
   function sanitizeKills(kills) {
     if (!kills || typeof kills !== 'object') return {};
@@ -100,60 +74,56 @@
     return kills;
   }
 
-  function sanitizeRun(r) {
-    if (!r || typeof r !== 'object') return null;
-    r.id = typeof r.id === 'string' && r.id ? r.id : newRun('', '').id;
-    r.name = typeof r.name === 'string' && r.name.trim() ? r.name.trim() : 'Забег';
-    r.char = typeof r.char === 'string' ? (CHAR_ALIASES[r.char] || r.char) : '';
-    r.player = typeof r.player === 'string' ? r.player : '';
-    r.worldName = typeof r.worldName === 'string' ? r.worldName : '';
-    r.auto = r.auto === true;
-    r.day = Math.max(0, parseInt(r.day, 10) || 0);
-    r.retroApplied = (r.retroApplied && typeof r.retroApplied === 'object') ? r.retroApplied : {};
-    if (r.skills && typeof r.skills === 'object') {
-      r.skills = {
-        char: typeof r.skills.char === 'string' ? (CHAR_ALIASES[r.skills.char] || r.skills.char) : '',
-        list: Array.isArray(r.skills.list) ? r.skills.list.filter(function (x) { return typeof x === 'string'; }) : [],
-        points: Math.max(0, parseInt(r.skills.points, 10) || 0),
-        xp: Math.max(0, parseInt(r.skills.xp, 10) || 0)
-      };
-    } else {
-      r.skills = null;
-    }
-    r.createdAt = typeof r.createdAt === 'string' ? r.createdAt : '';
-    r.kills = sanitizeKills(r.kills || {});
-    r.marks = (r.marks && typeof r.marks === 'object') ? r.marks : {};
-    return r;
+  function sanitizeSkills(skills) {
+    if (!skills || typeof skills !== 'object') return null;
+    return {
+      char: typeof skills.char === 'string' ? (CHAR_ALIASES[skills.char] || skills.char) : '',
+      list: Array.isArray(skills.list) ? skills.list.filter(function (x) { return typeof x === 'string'; }) : [],
+      points: Math.max(0, parseInt(skills.points, 10) || 0),
+      xp: Math.max(0, parseInt(skills.xp, 10) || 0)
+    };
   }
 
   function load() {
-    var hadV2 = false;
+    var data = null;
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        var data = JSON.parse(raw);
-        if (data && Array.isArray(data.runs)) {
-          hadV2 = true;
-          state.runs = data.runs.map(sanitizeRun).filter(Boolean);
-          state.currentRunId = data.currentRunId || (state.runs[0] && state.runs[0].id) || null;
-          state.silhouettes = data.silhouettes !== false;
-          state.tab = data.tab || 'all';
-          state.filter = data.filter || 'all';
-        }
-      }
-    } catch (e) { /* повреждённое хранилище — начинаем заново */ }
+      if (raw) data = JSON.parse(raw);
+    } catch (e) { data = null; }
 
-    if (!state.runs.length && !hadV2) {
+    if (data && Array.isArray(data.runs)) {
+      // старый формат с забегами: берём текущий, иначе первый
+      var picked = null;
+      for (var i = 0; i < data.runs.length; i++) {
+        if (data.runs[i] && data.runs[i].id === data.currentRunId) { picked = data.runs[i]; break; }
+      }
+      if (!picked) picked = data.runs[0] || null;
+      if (picked) {
+        state.kills = sanitizeKills(picked.kills || {});
+        state.marks = (picked.marks && typeof picked.marks === 'object') ? picked.marks : {};
+        state.char = typeof picked.char === 'string' ? (CHAR_ALIASES[picked.char] || picked.char) : '';
+        state.skills = sanitizeSkills(picked.skills);
+      }
+      state.silhouettes = data.silhouettes !== false;
+      state.tab = data.tab || 'all';
+      state.filter = data.filter || 'all';
+    } else if (data && typeof data === 'object') {
+      // новый формат: один общий дневник
+      state.kills = sanitizeKills(data.kills || {});
+      state.marks = (data.marks && typeof data.marks === 'object') ? data.marks : {};
+      state.char = typeof data.char === 'string' ? (CHAR_ALIASES[data.char] || data.char) : '';
+      state.skills = sanitizeSkills(data.skills);
+      state.silhouettes = data.silhouettes !== false;
+      state.tab = data.tab || 'all';
+      state.filter = data.filter || 'all';
+    } else {
       // миграция старого одиночного дневника
       try {
         var lraw = localStorage.getItem(LEGACY_KEY);
         if (lraw) {
           var old = JSON.parse(lraw);
-          var run = newRun('Первый забег', 'wilson');
-          run.kills = sanitizeKills(old.kills || {});
-          run.marks = (old.marks && typeof old.marks === 'object') ? old.marks : {};
-          state.runs = [run];
-          state.currentRunId = run.id;
+          state.kills = sanitizeKills(old.kills || {});
+          state.marks = (old.marks && typeof old.marks === 'object') ? old.marks : {};
           if (typeof old.silhouettes === 'boolean') state.silhouettes = old.silhouettes;
           if (old.tab) state.tab = old.tab;
           if (old.filter) state.filter = old.filter;
@@ -162,17 +132,20 @@
       } catch (e) { /* старый формат нечитаем — пропускаем */ }
     }
 
-    state.pickChar = CHARACTERS[0] ? CHARACTERS[0].key : '';
-    bindRun();
+    if (state.skills && state.skills.char && state.skills.char !== state.char) {
+      state.skills = null;
+    }
   }
 
   var saveTimer = null;
   function persist() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        version: 2,
-        runs: state.runs,
-        currentRunId: state.currentRunId,
+        version: 3,
+        char: state.char,
+        skills: state.skills,
+        kills: state.kills,
+        marks: state.marks,
         silhouettes: state.silhouettes,
         tab: state.tab,
         filter: state.filter
@@ -184,31 +157,12 @@
     saveTimer = setTimeout(persist, 120);
   }
 
-  function currentRun() {
-    for (var i = 0; i < state.runs.length; i++) {
-      if (state.runs[i].id === state.currentRunId) return state.runs[i];
-    }
-    return null;
-  }
-
-  function bindRun() {
-    var r = currentRun();
-    state.kills = r ? r.kills : {};
-    state.marks = r ? r.marks : {};
-  }
-
   function kill(slug) {
     var k = state.kills[slug];
     if (!k) { k = state.kills[slug] = { count: 0, date: '', day: 0, note: '' }; }
     return k;
   }
   function isKilled(slug) { return kill(slug).count > 0; }
-
-  function charByKey(key) {
-    key = CHAR_ALIASES[key] || key;
-    for (var i = 0; i < CHARACTERS.length; i++) if (CHARACTERS[i].key === key) return CHARACTERS[i];
-    return null;
-  }
 
   /* ---------- утилиты ---------- */
 
@@ -314,7 +268,7 @@
     };
   }
 
-  // Общий прогресс забега: боссы + по одной награде за каждую группу вех + отдельные вехи.
+  // Общий прогресс: боссы + по одной награде за каждую группу вех + отдельные вехи.
   function progressFor(kills, marks) {
     var total = BOSSES.length + (MILESTONES.groups || []).length + (MILESTONES.items || []).length;
     var done = 0;
@@ -355,15 +309,17 @@
     els.search.placeholder = 'Найти чудовище…';
     if (isSkills) {
       var tree = skillTreeForCurrent();
-      var st = skillStats(tree, currentRun() && currentRun().skills);
+      var st = skillStats(tree, state.skills);
       els.title.textContent = 'Навыки';
-      els.hint.textContent = tree ? ('Древо навыков: ' + tree.name) : 'У этого персонажа нет древа навыков';
-      els.pCount.textContent = st.learned + ' / ' + st.total;
-      els.pPercent.textContent = st.pct + '%';
-      els.pFill.style.width = st.pct + '%';
+      els.hint.textContent = tree
+        ? ('Древо навыков: ' + tree.name)
+        : (state.char ? 'У этого персонажа нет древа навыков' : 'Выбери персонажа, чтобы открыть древо');
+      els.pCount.textContent = tree ? (st.learned + ' / ' + st.total) : '—';
+      els.pPercent.textContent = tree ? (st.pct + '%') : '';
+      els.pFill.style.width = tree ? (st.pct + '%') : '0%';
       els.pCaption.textContent = tree
         ? (st.learned ? 'Изучено навыков: ' + st.learned + ' из ' + st.total : 'Навыки ещё не изучены')
-        : 'Древо навыков есть не у всех персонажей';
+        : (state.char ? 'Древо навыков есть не у всех персонажей' : 'Персонаж ещё не выбран');
       return;
     }
     if (isProgress) {
@@ -405,9 +361,7 @@
   /* ---------- вкладки ---------- */
 
   function skillTreeForCurrent() {
-    var run = currentRun();
-    if (!run || !run.char) return null;
-    return SKILL_TREES[run.char] || null;
+    return state.char ? (SKILL_TREES[state.char] || null) : null;
   }
 
   function skillStats(tree, skillsState) {
@@ -424,14 +378,14 @@
   }
 
   function renderTabs() {
-    var tree = skillTreeForCurrent();
     var html = '';
+    var tree = skillTreeForCurrent();
+    var st = skillStats(tree, state.skills);
     CATS.forEach(function (c) {
-      if (c.id === 'chronicle' && tree) {
-        var st = skillStats(tree, currentRun() && currentRun().skills);
+      if (c.id === 'chronicle') {
         html += '<button class="tab' + (state.tab === 'skills' ? ' is-on' : '') + '" data-tab="skills">' +
           '<span class="tab__icon" aria-hidden="true">✦</span>Навыки' +
-          '<span class="tab__count">' + st.learned + '/' + st.total + '</span></button>';
+          '<span class="tab__count">' + (tree ? st.learned + '/' + st.total : '—') + '</span></button>';
       }
       var p;
       if (c.id === 'progress') {
@@ -537,9 +491,21 @@
   }
 
   function renderSkills() {
-    var run = currentRun();
     var tree = skillTreeForCurrent();
     els.grid.hidden = false;
+    if (!state.char) {
+      els.empty.hidden = true;
+      var chars = CHARACTERS.map(function (c) {
+        return '<button type="button" class="pick" data-skillchar="' + esc(c.key) + '">' +
+          '<img src="' + esc(c.head) + '" alt="" loading="lazy">' +
+          '<span>' + esc(c.name) + '</span></button>';
+      }).join('');
+      els.grid.innerHTML = '<div class="skillpick">' +
+        '<h3 class="skillpick__title">Древо навыков</h3>' +
+        '<p class="skillpick__lead">Выбери персонажа, чтобы посмотреть его древо навыков.</p>' +
+        '<div class="picks">' + chars + '</div></div>';
+      return;
+    }
     if (!tree) {
       els.empty.hidden = false;
       els.grid.innerHTML = '';
@@ -547,7 +513,7 @@
     }
     els.empty.hidden = true;
 
-    var skillsState = (run && run.skills) || null;
+    var skillsState = (state.skills && state.skills.char === state.char) ? state.skills : null;
     var learned = {};
     ((skillsState && skillsState.list) || []).forEach(function (id) { learned[id] = true; });
 
@@ -622,7 +588,7 @@
     var xpPct = xpProgress(xp);
     var insight = skillsState
       ? '<div class="skilltree__insight"><span class="skilltree__star">✦</span><b>' + points + '</b><span>озарения</span></div>'
-      : '<div class="skilltree__insight skilltree__insight--off">Подключи игру</div>';
+      : '<div class="skilltree__insight skilltree__insight--off">Навыки не отмечены</div>';
     var xpBlock = skillsState
       ? '<div class="skilltree__xp"><div class="skilltree__xpbar"><i style="width:' + xpPct + '%"></i></div>' +
         '<span class="skilltree__xptext">Опыт: <b>' + xp + '</b></span></div>'
@@ -642,6 +608,7 @@
       '<div class="skilltree__head">' + face +
         '<div class="skilltree__title"><h3>' + esc(tree.name) + '</h3><p>Древо навыков</p></div>' +
         insight +
+        '<button class="btn btn--ghost skilltree__change" data-skillchange="1">Сменить персонажа</button>' +
         '<div class="skilltree__legend"><span class="is-on">изучено</span><span>не изучено</span><span class="is-lock">условие</span></div>' +
       '</div>' + xpBlock +
       '<div class="skilltree__canvas">' +
@@ -671,8 +638,7 @@
       return found;
     }
     function statusOf(s) {
-      var run = currentRun();
-      var list = (run && run.skills && run.skills.list) || [];
+      var list = (state.skills && state.skills.list) || [];
       var on = list.indexOf(s.id) >= 0;
       var av = false;
       if (!s.lock && !on) {
@@ -725,8 +691,7 @@
       if (prev) prev.classList.remove('is-selected');
       g.classList.add('is-selected');
 
-      var run = currentRun();
-      var list = (run && run.skills && run.skills.list) || [];
+      var list = (state.skills && state.skills.list) || [];
       var on = list.indexOf(s.id) >= 0;
       var av = false;
       if (!s.lock && !on) {
@@ -843,8 +808,8 @@
     var bp = progress(BOSSES);
 
     var html = '<div class="progress-view">';
-    html += pbarCard('Общий прогресс забега', o,
-      'Боссы + награды за квестовые ветки + вехи. 100% — забег пройден полностью.');
+    html += pbarCard('Общий прогресс', o,
+      'Боссы + награды за квестовые ветки + вехи. 100% — всё закрыто.');
     html += pbarCard('Боссы', bp, 'Все записи компендиума.');
 
     var groups = MILESTONES.groups || [];
@@ -1357,129 +1322,9 @@
     openEntry(list[next].slug);
   }
 
-  /* ---------- страница «Создать забег» ---------- */
-
-  function showStart() {
-    renderStart();
-    els.start.hidden = false;
-    document.body.style.overflow = 'hidden';
-  }
-
-  function hideStart() {
-    els.start.hidden = true;
-    document.body.style.overflow = '';
-  }
-
-  function renderStart() {
-    var pick = state.pickChar || (CHARACTERS[0] && CHARACTERS[0].key) || '';
-    state.pickChar = pick;
-    var chars = CHARACTERS.map(function (c) {
-      return '<button type="button" class="pick' + (pick === c.key ? ' is-on' : '') + '" ' +
-        'data-char="' + esc(c.key) + '" aria-pressed="' + (pick === c.key ? 'true' : 'false') + '">' +
-        '<img src="' + esc(c.head) + '" alt="" loading="lazy">' +
-        '<span>' + esc(c.name) + '</span></button>';
-    }).join('');
-
-    var runsHtml = '';
-    if (state.runs.length) {
-      runsHtml = '<div class="start__col">' +
-        '<h3 class="start__h3">Продолжить забег</h3>' +
-        '<div class="runlist">' + state.runs.map(function (r) {
-          var p = progressFor(r.kills || {}, r.marks || {});
-          var ch = charByKey(r.char);
-          var who = [];
-          if (ch) who.push(ch.name);
-          if (r.player) who.push(r.player);
-          if (r.day) who.push('день ' + r.day);
-          var meta = (who.length ? esc(who.join(' · ')) + ' · ' : '') +
-            p.done + ' / ' + p.total + ' · ' + p.pct + '%';
-          return '<div class="runitem' + (r.id === state.currentRunId ? ' is-current' : '') + '">' +
-            '<button class="runitem__open" data-run="' + esc(r.id) + '">' +
-              (ch ? '<img class="runitem__face" src="' + esc(ch.head) + '" alt="">' : '') +
-              '<span class="runitem__body">' +
-                '<span class="runitem__name">' + esc(r.name) + '</span>' +
-                '<span class="runitem__meta">' + meta + '</span>' +
-              '</span>' +
-            '</button>' +
-            '<button class="runitem__del" data-del="' + esc(r.id) + '" title="Удалить забег" aria-label="Удалить забег">×</button>' +
-            '</div>';
-        }).join('') + '</div></div>';
-    }
-
-    els.startBody.innerHTML =
-      '<h2 class="start__title" id="start-title">Создать забег</h2>' +
-      '<p class="start__lead">Назови забег и выбери, за кого играешь. У каждого забега — свой дневник побед и свой прогресс.</p>' +
-      '<div class="start__grid">' +
-        '<form class="start__col" id="run-form" autocomplete="off">' +
-          '<label class="start__label" for="run-name">Имя забега</label>' +
-          '<input class="start__input" id="run-name" type="text" maxlength="48" ' +
-            'placeholder="Например: Зимовка с Венди" value="' + esc(state.pickName || '') + '">' +
-          '<div class="start__label">Персонаж забега</div>' +
-          '<div class="picks" id="run-chars">' + chars + '</div>' +
-          '<button class="btn btn--big" type="submit">Начать забег</button>' +
-        '</form>' +
-        runsHtml +
-      '</div>' +
-      '<p class="start__version">Компендиум выжившего &middot; v' + esc(APP_VERSION) + '</p>';
-  }
-
-  function createRun(name, char, activate) {
-    var r = newRun(name, char);
-    state.runs.push(r);
-    if (activate !== false) {
-      state.currentRunId = r.id;
-      bindRun();
-    }
-    persist();
-    return r;
-  }
-
-  function openRun(id) {
-    if (!currentRun() || currentRun().id !== id) {
-      state.currentRunId = id;
-      bindRun();
-    }
-    persist();
-    hideStart();
-    renderAll();
-    updateRunBadge();
-  }
-
-  function deleteRun(id) {
-    var r = null;
-    for (var i = 0; i < state.runs.length; i++) if (state.runs[i].id === id) r = state.runs[i];
-    if (!r) return;
-    if (!confirm('Удалить забег «' + r.name + '»? Весь его прогресс будет стёрт.')) return;
-    state.runs = state.runs.filter(function (x) { return x.id !== id; });
-    if (state.currentRunId === id) {
-      state.currentRunId = state.runs.length ? state.runs[0].id : null;
-      bindRun();
-    }
-    persist();
-    renderStart();
-    renderAll();
-    updateRunBadge();
-    toast('Забег удалён');
-  }
-
-  function updateRunBadge() {
-    var r = currentRun();
-    if (!r) { els.runNow.hidden = true; return; }
-    var ch = charByKey(r.char);
-    els.runNow.hidden = false;
-    els.runNowName.textContent = r.name;
-    var meta = ch ? ch.name : '';
-    if (r.player) meta += (meta ? ' · ' : '') + r.player;
-    if (r.day) meta += (meta ? ' · ' : '') + 'день ' + r.day;
-    els.runNowChar.textContent = meta;
-    if (ch) { els.runNowImg.src = ch.head; els.runNowImg.hidden = false; }
-    else { els.runNowImg.hidden = true; }
-  }
-
   /* ---------- общая отрисовка ---------- */
 
   function renderAll() {
-    if (state.tab === 'skills' && !skillTreeForCurrent()) state.tab = 'all';
     renderHead();
     renderTabs();
     renderGrid();
@@ -1531,6 +1376,22 @@
   });
 
   els.grid.addEventListener('click', function (e) {
+    var skillChar = e.target.closest('[data-skillchar]');
+    if (skillChar) {
+      state.char = skillChar.dataset.skillchar;
+      state.skills = null;
+      save();
+      renderAll();
+      return;
+    }
+    var skillChange = e.target.closest('[data-skillchange]');
+    if (skillChange) {
+      state.char = '';
+      state.skills = null;
+      save();
+      renderAll();
+      return;
+    }
     var craftCat = e.target.closest('[data-craftcat]');
     if (craftCat) {
       state.craftCat = craftCat.dataset.craftcat;
@@ -1579,55 +1440,16 @@
     if (e.key === 'ArrowRight') step(1);
   });
 
-  /* ---------- забеги: события ---------- */
-
-  els.start.addEventListener('click', function (e) {
-    var pick = e.target.closest('[data-char]');
-    if (pick) {
-      state.pickChar = pick.dataset.char;
-      [].forEach.call(els.start.querySelectorAll('.pick'), function (b) {
-        var on = b.dataset.char === state.pickChar;
-        b.classList.toggle('is-on', on);
-        b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      });
-      return;
-    }
-    var del = e.target.closest('[data-del]');
-    if (del) { deleteRun(del.dataset.del); return; }
-    var open = e.target.closest('[data-run]');
-    if (open) { openRun(open.dataset.run); return; }
-  });
-
-  els.start.addEventListener('input', function (e) {
-    if (e.target.id === 'run-name') state.pickName = e.target.value;
-  });
-
-  els.start.addEventListener('submit', function (e) {
-    if (e.target.id !== 'run-form') return;
-    e.preventDefault();
-    var nameEl = document.getElementById('run-name');
-    var name = (nameEl && nameEl.value.trim()) || 'Забег';
-    var char = state.pickChar || (CHARACTERS[0] && CHARACTERS[0].key) || '';
-    state.pickName = '';
-    createRun(name, char);
-    hideStart();
-    renderAll();
-    updateRunBadge();
-    toast('Забег «' + name + '» начат');
-  });
-
-  document.getElementById('btn-runs').addEventListener('click', showStart);
-
   /* ---------- экспорт / импорт ---------- */
 
   function exportData() {
-    var r = currentRun();
     var payload = {
       app: 'dst-compendium',
-      version: 2,
+      version: 3,
       appVersion: APP_VERSION,
       savedAt: new Date().toISOString(),
-      run: r ? { name: r.name, char: r.char } : null,
+      char: state.char,
+      skills: state.skills,
       silhouettes: state.silhouettes,
       kills: state.kills,
       marks: state.marks
@@ -1640,7 +1462,7 @@
     a.click();
     document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-    toast('Прогресс забега выгружен в файл');
+    toast('Прогресс выгружен в файл');
   }
 
   document.getElementById('btn-export').addEventListener('click', exportData);
@@ -1656,24 +1478,16 @@
         var data = JSON.parse(reader.result);
         var kills = data.kills || data;
         if (!kills || typeof kills !== 'object') throw new Error('bad');
-        if (!currentRun()) {
-          var nm = (data.run && data.run.name) || 'Загруженный забег';
-          var ch = (data.run && data.run.char) || (CHARACTERS[0] && CHARACTERS[0].key) || '';
-          createRun(nm, ch);
-        }
         state.kills = sanitizeKills(kills);
-        currentRun().kills = state.kills;
-        if (data.marks && typeof data.marks === 'object') {
-          state.marks = data.marks;
-          currentRun().marks = state.marks;
-        }
-        delete currentRun().sync;
+        if (data.marks && typeof data.marks === 'object') state.marks = data.marks;
+        var ch = data.char || (data.run && data.run.char) || '';
+        state.char = typeof ch === 'string' ? (CHAR_ALIASES[ch] || ch) : '';
+        state.skills = sanitizeSkills(data.skills);
         if (typeof data.silhouettes === 'boolean') state.silhouettes = data.silhouettes;
         els.silhouettes.checked = state.silhouettes;
         save();
         renderAll();
-        updateRunBadge();
-        toast('Прогресс загружен в текущий забег');
+        toast('Прогресс загружен');
       } catch (err) {
         toast('Не получилось прочитать файл');
       }
@@ -1683,792 +1497,13 @@
   });
 
   document.getElementById('btn-reset').addEventListener('click', function () {
-    var r = currentRun();
-    if (!confirm('Сжечь дневник забега' + (r ? ' «' + r.name + '»' : '') + '? Отметки будут стёрты безвозвратно.')) return;
+    if (!confirm('Сжечь дневник? Отметки будут стёрты безвозвратно.')) return;
     state.kills = {};
     state.marks = {};
-    if (r) { r.kills = state.kills; r.marks = state.marks; delete r.sync; }
     persist();
     renderAll();
     toast('Дневник сожжён. Всё начинается заново');
   });
-
-  /* ---------- синхронизация с игрой ---------- */
-
-  var SYNC_URL = 'http://127.0.0.1:8787/state';
-  var SYNC_EVERY = 5000;
-
-  state.sync = { on: false, busy: false, fails: 0, timer: null, world: null };
-  state.file = {
-    on: false, busy: false, timer: null, handles: null,
-    world: null, stale: false, remembered: false
-  };
-
-  function syncFetch() {
-    return new Promise(function (resolve, reject) {
-      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-      var done = false;
-      var timer = setTimeout(function () {
-        if (done) return;
-        done = true;
-        if (ctrl) ctrl.abort();
-        reject(new Error('timeout'));
-      }, 3500);
-      fetch(SYNC_URL, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
-        .then(function (r) {
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r.json();
-        })
-        .then(function (data) {
-          if (done) return;
-          done = true;
-          clearTimeout(timer);
-          resolve(data);
-        })
-        .catch(function (err) {
-          if (done) return;
-          done = true;
-          clearTimeout(timer);
-          reject(err);
-        });
-    });
-  }
-
-  function addKillCount(run, slug, n, date, day) {
-    if (!run || n <= 0) return;
-    var cur = run.kills[slug];
-    if (!cur) cur = run.kills[slug] = { count: 0, date: '', day: 0, note: '' };
-    cur.count = (cur.count || 0) + n;
-    if (date) cur.date = date;
-    if (day) cur.day = day;
-  }
-
-  function isKnownBoss(slug) {
-    for (var i = 0; i < BOSSES.length; i++) if (BOSSES[i].slug === slug) return true;
-    return false;
-  }
-
-  function mergeSkills(data, run) {
-    if (!run || !data || !data.skills || !data.skills.char) return false;
-    var raw = data.skills.char;
-    var siteKey = CHAR_ALIASES[raw] || raw;
-    if (!run.char) run.char = siteKey;
-    if (siteKey !== run.char) return false;
-    var list = (data.skills.skills || []).filter(function (x) { return typeof x === 'string'; });
-    var points = parseInt(data.skills.points, 10) || 0;
-    var xp = parseInt(data.skills.xp, 10) || 0;
-    var prev = run.skills || {};
-    var same = prev.char === siteKey && prev.points === points && prev.xp === xp &&
-      JSON.stringify(prev.list || []) === JSON.stringify(list);
-    if (same) return false;
-    run.skills = { char: siteKey, list: list, points: points, xp: xp };
-    return true;
-  }
-
-  function mergeRetro(data, run) {
-    if (!run) return 0;
-    if (!run.retroApplied || typeof run.retroApplied !== 'object') run.retroApplied = {};
-    var applied = run.retroApplied;
-    var retro = (data && data.retro) || {};
-    var count = 0;
-
-    Object.keys(retro).forEach(function (slug) {
-      if (!isKnownBoss(slug)) return;
-      var n = parseInt(retro[slug], 10) || 0;
-      if (n <= 0) return;
-      var prev = parseInt(applied[slug], 10) || 0;
-      if (n <= prev) return;
-      applied[slug] = n;
-      var cur = run.kills[slug];
-      if (!cur) cur = run.kills[slug] = { count: 0, date: '', day: 0, note: '' };
-      if ((cur.count || 0) < n) {
-        cur.count = n;
-        if (!cur.note) cur.note = 'Восстановлено по состоянию мира';
-      }
-      count++;
-    });
-
-    return count;
-  }
-
-  function mergeSync(data, run) {
-    if (!run) return { added: 0, changed: false };
-    if (!run.sync || typeof run.sync !== 'object') run.sync = {};
-    if (!run.sync.shards || typeof run.sync.shards !== 'object') run.sync.shards = {};
-
-    var added = 0, changed = false, baseline = false;
-    var shards = data.shard_state;
-    if (!shards || !shards.length) {
-      shards = [{ shard: 'default', session: data.session || 0, kills: data.kills || {} }];
-    }
-
-    shards.forEach(function (rec) {
-      var shard = rec.shard || 'default';
-      var counts = {};
-      var kills = rec.kills || {};
-      Object.keys(kills).forEach(function (slug) {
-        if (!isKnownBoss(slug)) return;
-        counts[slug] = parseInt((kills[slug] || {}).count, 10) || 0;
-      });
-
-      var st = run.sync.shards[shard];
-      if (!st) {
-        // Первое подключение: запоминаем текущие счётчики как точку отсчёта,
-        // чтобы не засчитать то, что было убито до подключения сайта.
-        run.sync.shards[shard] = { session: rec.session || 0, seen: counts };
-        changed = true;
-        baseline = true;
-        return;
-      }
-
-      var session = rec.session || 0;
-      if (session !== (st.session || 0)) {
-        // Сервер перезапустился: счётчики мода начались заново, все его
-        // смерти — новые для этого забега.
-        Object.keys(counts).forEach(function (slug) {
-          var n = counts[slug];
-          if (n > 0) {
-            addKillCount(run, slug, n, (kills[slug] || {}).date, (kills[slug] || {}).day);
-            added += n;
-          }
-        });
-        st.session = session;
-        st.seen = counts;
-        changed = true;
-        return;
-      }
-
-      Object.keys(counts).forEach(function (slug) {
-        var n = counts[slug];
-        var prev = parseInt(st.seen[slug], 10) || 0;
-        if (n > prev) {
-          addKillCount(run, slug, n - prev, (kills[slug] || {}).date, (kills[slug] || {}).day);
-          added += n - prev;
-        }
-        if (n !== prev) changed = true;
-        st.seen[slug] = n;
-      });
-    });
-
-    var sp = (data.kills || {}).shadow_pieces;
-    if (run === currentRun() && sp && sp.levels) {
-      var pick = state.variantPick.shadow_pieces || {};
-      ['knight', 'bishop', 'rook'].forEach(function (piece) {
-        var lv = parseInt(sp.levels[piece], 10);
-        if (lv >= 1 && lv <= 3) pick[piece] = Math.max(pick[piece] || 0, lv);
-      });
-      state.variantPick.shadow_pieces = pick;
-    }
-
-    var addedMarks = 0;
-    var marks = (data && data.marks) || {};
-    if (!run.marks || typeof run.marks !== 'object') run.marks = {};
-    Object.keys(marks).forEach(function (id) {
-      if (!marks[id] || !MILESTONE_IDS[id]) return;
-      if (!run.marks[id]) {
-        run.marks[id] = true;
-        addedMarks++;
-      }
-    });
-
-    state.sync.world = data.world || null;
-    return { added: added, changed: changed, baseline: baseline, marks: addedMarks };
-  }
-
-  function ensureWorldRun(data) {
-    var w = (data && data.world) || {};
-    var worldName = (w.name && String(w.name).trim()) || '';
-    var ch = w.char ? charByKey(w.char) : null;
-    var char = ch ? ch.key : '';
-    var player = (w.player && String(w.player).trim()) || '';
-    var cur = currentRun();
-    var changed = false;
-    var target = null;
-
-    // Ищем забег, который принадлежит этому миру игры.
-    if (worldName) {
-      state.runs.forEach(function (r) {
-        if (r.auto && r.worldName === worldName) target = r;
-      });
-    }
-    if (!target && cur && cur.auto && (!worldName || !cur.worldName)) {
-      target = cur;
-    }
-
-    // Нет забега мира — создаём его. Ручной забег при этом не трогаем
-    // и не переключаем: игра пишет только в свой автоматический забег.
-    if (!target) {
-      target = createRun(worldName || 'Забег из игры', char, false);
-      target.auto = true;
-      target.worldName = worldName;
-      target.player = player;
-      changed = true;
-    }
-
-    if (worldName && target.name !== worldName) { target.name = worldName; changed = true; }
-    if (char && target.char !== char) { target.char = char; changed = true; }
-    if (player && target.player !== player) { target.player = player; changed = true; }
-    if (worldName && target.worldName !== worldName) { target.worldName = worldName; changed = true; }
-
-    if (!cur) {
-      state.currentRunId = target.id;
-      bindRun();
-      hideStart();
-      changed = true;
-    } else if (cur.auto && cur !== target) {
-      // Открыт автоматический забег другого мира — переключаемся на нужный.
-      state.currentRunId = target.id;
-      bindRun();
-      changed = true;
-    }
-
-    return { run: target, changed: changed, current: target === currentRun() };
-  }
-
-  function gameOnline(data) {
-    if (!data || !data.connected) return false;
-    if (data.online === false) return false;
-    if (data.online === true) return true;
-    // Старый мост без поля online: смотрим на возраст данных.
-    if (data.stale === true) return false;
-    var age = parseInt(data.age, 10);
-    return !isFinite(age) || age <= 120;
-  }
-
-  function applySync(data, silent) {
-    if (!data || !data.connected) {
-      if (!silent) toast('Мост работает, но мод ещё не записал прогресс');
-      return null;
-    }
-    if (!gameOnline(data)) {
-      if (!silent) toast('Игра не запущена — данные устарели');
-      return null;
-    }
-
-    var wr = ensureWorldRun(data);
-    var run = wr.run;
-    if (!run) return null;
-    var runChanged = wr.changed;
-
-    // Текущий день мира — отдельный счётчик забега.
-    var worldDay = parseInt((data.world || {}).day, 10) || 0;
-    if (worldDay && run.day !== worldDay) {
-      run.day = worldDay;
-      runChanged = true;
-      save();
-      if (wr.current) updateRunBadge();
-    }
-
-    var res = mergeSync(data, run);
-    var retroCount = mergeRetro(data, run);
-    var skillsChanged = mergeSkills(data, run);
-    if (res.changed || runChanged || res.marks || retroCount || skillsChanged) save();
-    if (wr.current && (res.added || runChanged || res.marks || retroCount || skillsChanged)) {
-      renderAll();
-      updateRunBadge();
-    }
-
-    var parts = [];
-    if (res.added) parts.push('побед: ' + res.added);
-    if (res.marks) parts.push('отметок: ' + res.marks);
-    if (retroCount) parts.push('из прошлого: ' + retroCount);
-    if (wr.current && parts.length) {
-      toast('Из игры — ' + parts.join(', '));
-    } else if (wr.current && res.baseline) {
-      toast('Игра на связи. Новые победы начнут учитываться с этого момента');
-    } else if (!silent && wr.current) {
-      toast('Игра на связи, новых побед нет');
-    }
-    res.retro = retroCount;
-    res.run = run;
-    res.current = wr.current;
-    state.sync.targetName = run.name;
-    state.sync.targetCurrent = wr.current;
-    return res;
-  }
-
-  function renderSyncBtn() {
-    var b = els.sync;
-    if (!b) return;
-    b.classList.toggle('is-on', state.sync.on);
-    b.classList.toggle('is-err', !state.sync.on && state.sync.fails > 0);
-    b.classList.toggle('is-busy', state.sync.busy);
-    b.setAttribute('aria-pressed', state.sync.on ? 'true' : 'false');
-    var title = state.sync.on
-      ? 'Игра на связи — нажми, чтобы отключиться'
-      : 'Подключиться к игре через tools/bridge.py';
-    if (state.sync.on && state.sync.world) {
-      title += ' · день ' + (state.sync.world.day || '?');
-      var players = state.sync.world.players || [];
-      if (players.length) title += ' · ' + players.join(', ');
-    }
-    if (state.sync.on && state.sync.targetName && !state.sync.targetCurrent) {
-      title += ' · забег «' + state.sync.targetName + '»';
-    }
-    b.title = title;
-  }
-
-  function stopSync(msg) {
-    state.sync.on = false;
-    if (state.sync.timer) {
-      clearInterval(state.sync.timer);
-      state.sync.timer = null;
-    }
-    renderSyncBtn();
-    if (msg) toast(msg);
-  }
-
-  function pollSync() {
-    if (!state.sync.on || state.sync.busy) return;
-    state.sync.busy = true;
-    renderSyncBtn();
-    syncFetch().then(function (data) {
-      state.sync.busy = false;
-      state.sync.fails = 0;
-      if (!data.connected) {
-        stopSync('Мост работает, но мод ещё не записал прогресс');
-        return;
-      }
-      if (!gameOnline(data)) {
-        stopSync('Игра не запущена — синхронизация остановлена');
-        return;
-      }
-      applySync(data, true);
-      renderSyncBtn();
-    }).catch(function () {
-      state.sync.busy = false;
-      state.sync.fails++;
-      renderSyncBtn();
-      if (state.sync.fails >= 3) stopSync('Связь с игрой потеряна');
-    });
-  }
-
-  function toggleSync() {
-    if (state.sync.on) {
-      stopSync('Отключено от игры');
-      return;
-    }
-    if (state.file.on) stopFileSync();
-    if (state.sync.busy) return;
-    state.sync.busy = true;
-    state.sync.fails = 0;
-    renderSyncBtn();
-    syncFetch().then(function (data) {
-      state.sync.busy = false;
-      if (!data.connected) {
-        state.sync.fails = 1;
-        renderSyncBtn();
-        toast('Мост работает, но файла мода нет — включи мод и зайди в мир');
-        return;
-      }
-      if (!gameOnline(data)) {
-        state.sync.fails = 1;
-        renderSyncBtn();
-        toast('Игра не запущена или данные устарели — запусти игру и зайди в мир');
-        return;
-      }
-      var res = applySync(data, false);
-      if (!res) return;
-      state.sync.on = true;
-      state.sync.timer = setInterval(pollSync, SYNC_EVERY);
-      renderSyncBtn();
-      var w = data.world || {};
-      var extra = [];
-      if (res.added) extra.push('побед: ' + res.added);
-      if (res.marks) extra.push('отметок: ' + res.marks);
-      if (res.retro) extra.push('из прошлого: ' + res.retro);
-      var where = '';
-      if (res.run && !res.current) {
-        where = ' · данные идут в забег «' + res.run.name + '»';
-      }
-      toast('Игра на связи' + (w.day ? ' · день ' + w.day : '') + where +
-        (extra.length ? ' · ' + extra.join(', ')
-          : (res.baseline ? ' · новые победы — с этого момента' : '')));
-    }).catch(function () {
-      state.sync.busy = false;
-      state.sync.fails = 1;
-      renderSyncBtn();
-      toast('Мост не отвечает — запусти python3 tools/bridge.py');
-    });
-  }
-
-  els.sync.addEventListener('click', toggleSync);
-
-  /* ---------- прямое чтение файла синхронизации (без моста) ---------- */
-
-  var FILE_DB = 'dst-tracker-files';
-  var FILE_STORE = 'handles';
-  var FILE_EVERY = 5000;
-  var FILE_STALE = 120;
-  var SYNC_FILE_NAMES = [
-    'dst-tracker-sync.json',
-    'dst-tracker-sync-caves.json',
-    'dst_tracker_sync_forest',
-    'dst_tracker_sync_caves'
-  ];
-
-  function idbOpen() {
-    return new Promise(function (resolve, reject) {
-      if (!window.indexedDB) { reject(new Error('indexedDB unavailable')); return; }
-      var req = indexedDB.open(FILE_DB, 1);
-      req.onupgradeneeded = function () {
-        var db = req.result;
-        if (!db.objectStoreNames.contains(FILE_STORE)) db.createObjectStore(FILE_STORE);
-      };
-      req.onsuccess = function () { resolve(req.result); };
-      req.onerror = function () { reject(req.error); };
-    });
-  }
-
-  function idbGet(key) {
-    return idbOpen().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        var tx = db.transaction(FILE_STORE, 'readonly');
-        var req = tx.objectStore(FILE_STORE).get(key);
-        req.onsuccess = function () { resolve(req.result); };
-        req.onerror = function () { reject(req.error); };
-      });
-    });
-  }
-
-  function idbSet(key, value) {
-    return idbOpen().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        var tx = db.transaction(FILE_STORE, 'readwrite');
-        tx.objectStore(FILE_STORE).put(value, key);
-        tx.oncomplete = function () { resolve(); };
-        tx.onerror = function () { reject(tx.error); };
-      });
-    });
-  }
-
-  function syncFileText(text) {
-    var t = String(text || '').trim();
-    if (t.slice(0, 4) === 'KLEI') t = t.slice(4).trim();
-    return t;
-  }
-
-  function parseSyncRecords(files) {
-    var records = [];
-    (files || []).forEach(function (f) {
-      try {
-        var rec = JSON.parse(syncFileText(f.text));
-        if (rec && rec.app === 'dst-compendium') records.push(rec);
-      } catch (e) { /* не файл синхронизации */ }
-    });
-    return records;
-  }
-
-  function mergeKillsJs(records) {
-    var merged = {};
-    records.forEach(function (rec) {
-      var kills = rec.kills || {};
-      Object.keys(kills).forEach(function (slug) {
-        var k = kills[slug];
-        if (!k || typeof k !== 'object') return;
-        var count = parseInt(k.count, 10) || 0;
-        var time = parseInt(k.time, 10) || 0;
-        var day = parseInt(k.day, 10) || 0;
-        var cur = merged[slug];
-        if (!cur) {
-          merged[slug] = {
-            count: count,
-            date: typeof k.date === 'string' ? k.date : '',
-            time: time,
-            day: day
-          };
-          return;
-        }
-        if (count > cur.count || (count === cur.count && time > cur.time)) {
-          cur.count = Math.max(cur.count, count);
-          if (k.date) cur.date = k.date;
-          cur.time = Math.max(cur.time, time);
-          if (day) cur.day = day;
-        } else if (day && !cur.day) {
-          cur.day = day;
-        }
-      });
-    });
-    return merged;
-  }
-
-  function buildDirectData(records) {
-    if (!records.length) return null;
-    records.sort(function (a, b) {
-      return (parseInt(b.updated_at, 10) || 0) - (parseInt(a.updated_at, 10) || 0);
-    });
-    var latest = records[0];
-    var updated = parseInt(latest.updated_at, 10) || 0;
-    var age = updated ? Math.max(0, Math.floor(Date.now() / 1000) - updated) : 0;
-    var marks = {};
-    var retro = {};
-    records.forEach(function (rec) {
-      Object.keys(rec.marks || {}).forEach(function (id) {
-        if (rec.marks[id]) marks[id] = true;
-      });
-      Object.keys(rec.retro || {}).forEach(function (slug) {
-        var n = parseInt(rec.retro[slug], 10) || 0;
-        if (n > (retro[slug] || 0)) retro[slug] = n;
-      });
-    });
-    var skills = null;
-    records.forEach(function (rec) {
-      if (!skills && rec.skills && rec.skills.char) skills = rec.skills;
-    });
-    return {
-      connected: true,
-      direct: true,
-      online: age <= FILE_STALE,
-      age: age,
-      updated_at: updated,
-      world: latest.world || {},
-      skills: skills,
-      kills: mergeKillsJs(records),
-      marks: marks,
-      retro: retro,
-      shard_state: records.map(function (rec) {
-        return {
-          shard: rec.shard || '',
-          session: parseInt(rec.session, 10) || 0,
-          updated_at: parseInt(rec.updated_at, 10) || 0,
-          kills: rec.kills || {}
-        };
-      })
-    };
-  }
-
-  function readHandles(handles) {
-    var out = [];
-    var list = handles || [];
-    var chain = Promise.resolve();
-    list.forEach(function (handle) {
-      chain = chain.then(function () {
-        if (!handle) return;
-        if (handle.kind === 'file') {
-          return handle.getFile().then(function (file) {
-            return file.text().then(function (text) {
-              out.push({ name: handle.name || file.name || 'sync.json', text: text });
-            });
-          });
-        }
-        var names = SYNC_FILE_NAMES;
-        var walk = function (dir, depth) {
-          var iterator = dir.values();
-          var next = function () {
-            return iterator.next().then(function (res) {
-              if (res.done) return;
-              var entry = res.value;
-              if (entry.kind === 'file' && names.indexOf(entry.name) >= 0) {
-                return entry.getFile().then(function (file) {
-                  return file.text().then(function (text) {
-                    out.push({ name: entry.name, text: text });
-                    return next();
-                  });
-                });
-              }
-              if (entry.kind === 'directory' && depth < 2) {
-                return walk(entry, depth + 1).then(next);
-              }
-              return next();
-            });
-          };
-          return next();
-        };
-        return walk(handle, 0);
-      });
-    });
-    return chain.then(function () { return out; });
-  }
-
-  function readInputFiles(input) {
-    var files = Array.prototype.slice.call((input && input.files) || []);
-    return Promise.all(files.map(function (file) {
-      return file.text().then(function (text) {
-        return { name: file.name, text: text };
-      });
-    }));
-  }
-
-  function renderFileBtn() {
-    var b = els.file;
-    if (!b) return;
-    b.classList.toggle('is-on', state.file.on && !state.file.stale);
-    b.classList.toggle('is-err', state.file.on && state.file.stale);
-    b.classList.toggle('is-busy', state.file.busy);
-    b.setAttribute('aria-pressed', state.file.on ? 'true' : 'false');
-    var title = 'Подключить файл сохранения игры напрямую — без моста';
-    if (state.file.on) {
-      title = 'Файл игры подключён';
-      if (state.file.world) title += ' · день ' + (state.file.world.day || '?');
-      if (state.file.stale) title += ' · данные устарели';
-    } else if (state.file.remembered) {
-      title = 'Нажми, чтобы разрешить чтение сохранённой папки';
-    }
-    b.title = title;
-  }
-
-  function stopFileSync(msg) {
-    state.file.on = false;
-    state.file.busy = false;
-    if (state.file.timer) {
-      clearInterval(state.file.timer);
-      state.file.timer = null;
-    }
-    renderFileBtn();
-    if (msg) toast(msg);
-  }
-
-  function pollFileSync(initial, silent) {
-    if (!state.file.on || state.file.busy) return;
-    state.file.busy = true;
-    renderFileBtn();
-    readHandles(state.file.handles).then(function (files) {
-      state.file.busy = false;
-      if (!files.length) {
-        state.file.stale = true;
-        renderFileBtn();
-        if (initial && !silent) toast('В выбранной папке нет файла синхронизации мода');
-        return;
-      }
-      var data = buildDirectData(parseSyncRecords(files));
-      if (!data) {
-        state.file.stale = true;
-        renderFileBtn();
-        if (initial && !silent) toast('Файл найден, но это не файл синхронизации мода');
-        return;
-      }
-      state.file.world = data.world;
-      state.file.stale = !data.online;
-      if (!data.online) {
-        renderFileBtn();
-        if (initial && !silent) toast('Файл найден, но данные устарели — зайди в мир');
-        return;
-      }
-      var res = applySync(data, initial ? true : false);
-      renderFileBtn();
-      if (initial && !silent) {
-        var w = data.world || {};
-        toast('Файл игры подключён' + (w.day ? ' · день ' + w.day : '') +
-          (res && res.run && !res.current ? ' · данные идут в забег «' + res.run.name + '»' : ''));
-      }
-    }).catch(function (err) {
-      state.file.busy = false;
-      state.file.stale = true;
-      renderFileBtn();
-      if (err && err.name === 'NotAllowedError') {
-        stopFileSync('Нет доступа к файлу — нажми «Файл» и разреши чтение');
-      } else if (initial && !silent) {
-        toast('Не удалось прочитать файл: ' + (err && err.message ? err.message : err));
-      }
-    });
-  }
-
-  function startFileSync(handles, label, silent) {
-    if (!handles || !handles.length) return;
-    stopSync();
-    stopFileSync();
-    state.file.handles = handles;
-    state.file.on = true;
-    state.file.stale = false;
-    state.file.world = null;
-    state.file.remembered = false;
-    idbSet('sync', handles).catch(function () { /* приватный режим */ });
-    renderFileBtn();
-    pollFileSync(true, silent);
-    state.file.timer = setInterval(function () { pollFileSync(false); }, FILE_EVERY);
-  }
-
-  function openFilePicker() {
-    if (window.showDirectoryPicker) {
-      window.showDirectoryPicker({ id: 'dst-tracker-sync', mode: 'read' }).then(function (handle) {
-        startFileSync([handle], handle.name);
-      }).catch(function (err) {
-        if (err && err.name !== 'AbortError') {
-          toast('Не удалось открыть папку: ' + (err.message || err));
-        }
-      });
-      return;
-    }
-    if (window.showOpenFilePicker) {
-      window.showOpenFilePicker({
-        multiple: true,
-        types: [{ description: 'Синхронизация DST', accept: { 'application/json': ['.json'] } }]
-      }).then(function (handles) {
-        if (handles && handles.length) startFileSync(handles, handles[0].name);
-      }).catch(function (err) {
-        if (err && err.name !== 'AbortError') {
-          toast('Не удалось открыть файл: ' + (err.message || err));
-        }
-      });
-      return;
-    }
-    if (els.syncFileInput) {
-      els.syncFileInput.value = '';
-      els.syncFileInput.click();
-    } else {
-      toast('Браузер не поддерживает прямое чтение файла — используй мост');
-    }
-  }
-
-  function toggleFileSync() {
-    if (state.file.on) {
-      stopFileSync('Файл отключён');
-      return;
-    }
-    if (state.file.busy) return;
-    if (state.file.remembered && state.file.handles && state.file.handles.length) {
-      var first = state.file.handles[0];
-      if (first && first.requestPermission) {
-        first.requestPermission({ mode: 'read' }).then(function (perm) {
-          if (perm === 'granted') startFileSync(state.file.handles, first.name || '');
-          else openFilePicker();
-        }).catch(function () { openFilePicker(); });
-        return;
-      }
-    }
-    openFilePicker();
-  }
-
-  function readFallbackSyncFiles() {
-    readInputFiles(els.syncFileInput).then(function (files) {
-      var data = buildDirectData(parseSyncRecords(files));
-      if (!data) { toast('Это не файл синхронизации мода'); return; }
-      if (!data.online) { toast('Данные устарели — зайди в мир'); return; }
-      stopSync();
-      var res = applySync(data, true);
-      state.file.world = data.world;
-      state.file.stale = false;
-      state.file.on = false;
-      renderFileBtn();
-      toast('Файл прочитан' + (data.world.day ? ' · день ' + data.world.day : '') +
-        (res && res.run && !res.current ? ' · забег «' + res.run.name + '»' : ''));
-    }).catch(function (err) {
-      toast('Не удалось прочитать файл: ' + (err && err.message ? err.message : err));
-    });
-  }
-
-  function restoreFileHandles() {
-    idbGet('sync').then(function (handles) {
-      if (!handles || !handles.length) return;
-      state.file.handles = handles;
-      var first = handles[0];
-      if (!first || !first.queryPermission) return;
-      first.queryPermission({ mode: 'read' }).then(function (perm) {
-        if (perm === 'granted') {
-          startFileSync(handles, first.name || '', true);
-        } else {
-          state.file.remembered = true;
-          renderFileBtn();
-        }
-      }).catch(function () {});
-    }).catch(function () {});
-  }
-
-  els.file.addEventListener('click', toggleFileSync);
-  if (els.syncFileInput) {
-    els.syncFileInput.addEventListener('change', readFallbackSyncFiles);
-  }
-
 
   /* ---------- старт ---------- */
 
@@ -2478,23 +1513,15 @@
     b.classList.toggle('is-on', b.dataset.filter === state.filter);
   });
   renderAll();
-  updateRunBadge();
-  renderSyncBtn();
-  renderFileBtn();
-  restoreFileHandles();
   var versionEl = document.getElementById('app-version');
   if (versionEl) {
     versionEl.textContent = 'v' + APP_VERSION;
     if (APP_BUILD) versionEl.title = 'сборка ' + APP_BUILD;
   }
-  showStart();
-
   // небольшой отладочный доступ (пригодится и для тестов)
   window.compendium = {
     open: openEntry,
     close: closeEntry,
-    start: showStart,
-    openRun: openRun,
     state: state,
     save: save
   };
