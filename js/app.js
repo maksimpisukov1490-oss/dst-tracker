@@ -8,11 +8,12 @@
   var LEGACY_KEY = 'dst-compendium-v1';
 
   var CATS = (window.CATEGORIES || []).filter(function (c) {
-    return c.id === 'mini' || c.id === 'progress' || c.id === 'chronicle';
+    return c.id === 'all' || c.id === 'mini' || c.id === 'progress' || c.id === 'chronicle';
+  }).map(function (c) {
+    if (c.id !== 'all') return c;
+    return { id: 'all', name: 'Все боссы', short: 'Все', icon: c.icon, hint: 'Все боссы, кроме мини-боссов' };
   });
-  var BOSSES = (window.BOSSES || []).filter(function (b) {
-    return b.category === 'mini';
-  });
+  var BOSSES = (window.BOSSES || []).slice();
   var CHARACTERS = window.CHARACTERS || [];
   var MILESTONES = window.MILESTONES || { groups: [], items: [] };
   var SKILL_TREES = window.SKILL_TREES || {};
@@ -52,7 +53,7 @@
   /* ---------- состояние ---------- */
 
   var state = {
-    tab: 'mini',
+    tab: 'all',
     filter: 'all',
     query: '',
     silhouettes: true,
@@ -175,7 +176,7 @@
 
     var tabOk = state.tab === 'skills' || state.tab === 'craft';
     CATS.forEach(function (c) { if (c.id === state.tab) tabOk = true; });
-    if (!tabOk) state.tab = 'mini';
+    if (!tabOk) state.tab = 'all';
   }
 
   var saveTimer = null;
@@ -263,6 +264,8 @@
 
   function scope() {
     // список боссов, к которым применяется прогресс текущей вкладки
+    if (state.tab === 'mini') return BOSSES.filter(function (b) { return b.category === 'mini'; });
+    if (state.tab === 'all') return BOSSES.filter(function (b) { return b.category !== 'mini'; });
     if (state.tab === 'chronicle') return BOSSES;
     return BOSSES.filter(function (b) { return b.category === state.tab; });
   }
@@ -609,7 +612,14 @@
       if (c.id === 'progress') {
         p = overallProgress();
       } else {
-        var list = BOSSES.filter(function (b) { return b.category === c.id; });
+        var list;
+        if (c.id === 'all') {
+          list = BOSSES.filter(function (b) { return b.category !== 'mini'; });
+        } else if (c.id === 'mini') {
+          list = BOSSES.filter(function (b) { return b.category === 'mini'; });
+        } else {
+          list = BOSSES.filter(function (b) { return b.category === c.id; });
+        }
         p = progress(list);
       }
       if (c.id === 'chronicle') {
@@ -642,7 +652,11 @@
   function visible() {
     var q = state.query.trim().toLowerCase();
     return BOSSES.filter(function (b) {
-      if (state.tab !== 'chronicle' && b.category !== state.tab) return false;
+      if (state.tab === 'mini') {
+        if (b.category !== 'mini') return false;
+      } else if (state.tab !== 'chronicle' && b.category === 'mini') {
+        return false;
+      }
       var k = isKilled(b.slug);
       if (state.filter === 'killed' && !k) return false;
       if (state.filter === 'alive' && k) return false;
