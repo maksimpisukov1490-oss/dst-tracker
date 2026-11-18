@@ -53,7 +53,7 @@
     query: '',
     silhouettes: true,
     char: '',
-    skills: null,
+    builds: {},
     kills: {},
     marks: {},
     variantPick: {},
@@ -74,14 +74,27 @@
     return kills;
   }
 
-  function sanitizeSkills(skills) {
-    if (!skills || typeof skills !== 'object') return null;
-    return {
-      char: typeof skills.char === 'string' ? (CHAR_ALIASES[skills.char] || skills.char) : '',
-      list: Array.isArray(skills.list) ? skills.list.filter(function (x) { return typeof x === 'string'; }) : [],
-      points: Math.max(0, parseInt(skills.points, 10) || 0),
-      xp: Math.max(0, parseInt(skills.xp, 10) || 0)
-    };
+  function sanitizeBuilds(builds) {
+    var out = {};
+    if (!builds || typeof builds !== 'object') return out;
+    Object.keys(builds).forEach(function (raw) {
+      var ch = CHAR_ALIASES[raw] || raw;
+      var tree = SKILL_TREES[ch];
+      var list = builds[raw];
+      if (!tree || !Array.isArray(list)) return;
+      var valid = {};
+      tree.skills.forEach(function (sk) { if (!sk.lock) valid[sk.id] = true; });
+      var seen = {};
+      var clean = [];
+      list.forEach(function (id) {
+        if (typeof id === 'string' && valid[id] && !seen[id] && clean.length < SKILL_POINTS) {
+          seen[id] = true;
+          clean.push(id);
+        }
+      });
+      out[ch] = clean;
+    });
+    return out;
   }
 
   function load() {
@@ -90,6 +103,9 @@
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) data = JSON.parse(raw);
     } catch (e) { data = null; }
+
+    var builds = null;
+    var legacySkills = null;
 
     if (data && Array.isArray(data.runs)) {
       // старый формат с забегами: берём текущий, иначе первый
@@ -102,7 +118,7 @@
         state.kills = sanitizeKills(picked.kills || {});
         state.marks = (picked.marks && typeof picked.marks === 'object') ? picked.marks : {};
         state.char = typeof picked.char === 'string' ? (CHAR_ALIASES[picked.char] || picked.char) : '';
-        state.skills = sanitizeSkills(picked.skills);
+        legacySkills = picked.skills;
       }
       state.silhouettes = data.silhouettes !== false;
       state.tab = data.tab || 'all';
@@ -112,7 +128,8 @@
       state.kills = sanitizeKills(data.kills || {});
       state.marks = (data.marks && typeof data.marks === 'object') ? data.marks : {};
       state.char = typeof data.char === 'string' ? (CHAR_ALIASES[data.char] || data.char) : '';
-      state.skills = sanitizeSkills(data.skills);
+      builds = data.builds;
+      legacySkills = data.skills;
       state.silhouettes = data.silhouettes !== false;
       state.tab = data.tab || 'all';
       state.filter = data.filter || 'all';
@@ -132,8 +149,18 @@
       } catch (e) { /* старый формат нечитаем — пропускаем */ }
     }
 
-    if (state.skills && state.skills.char && state.skills.char !== state.char) {
-      state.skills = null;
+    state.builds = sanitizeBuilds(builds);
+
+    // Старый одиночный блок skills -> сборка этого персонажа.
+    if (legacySkills && legacySkills.char && Array.isArray(legacySkills.list)) {
+      var lch = CHAR_ALIASES[legacySkills.char] || legacySkills.char;
+      if (!state.builds[lch]) {
+        var one = {};
+        one[lch] = legacySkills.list;
+        var clean = sanitizeBuilds(one);
+        if (clean[lch]) state.builds[lch] = clean[lch];
+      }
+      if (!state.char) state.char = lch;
     }
   }
 
@@ -141,9 +168,9 @@
   function persist() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        version: 3,
+        version: 4,
         char: state.char,
-        skills: state.skills,
+        builds: state.builds,
         kills: state.kills,
         marks: state.marks,
         silhouettes: state.silhouettes,
@@ -309,16 +336,16 @@
     els.search.placeholder = 'Найти чудовище…';
     if (isSkills) {
       var tree = skillTreeForCurrent();
-      var st = skillStats(tree, state.skills);
+      var st = skillStats(tree);
       els.title.textContent = 'Навыки';
       els.hint.textContent = tree
-        ? ('Древо навыков: ' + tree.name)
+        ? ('Древо навыков: ' + tree.name + ' · ' + SKILL_POINTS + ' очков')
         : (state.char ? 'У этого персонажа нет древа навыков' : 'Выбери персонажа, чтобы открыть древо');
-      els.pCount.textContent = tree ? (st.learned + ' / ' + st.total) : '—';
+      els.pCount.textContent = tree ? (st.learned + ' / ' + SKILL_POINTS) : '—';
       els.pPercent.textContent = tree ? (st.pct + '%') : '';
       els.pFill.style.width = tree ? (st.pct + '%') : '0%';
       els.pCaption.textContent = tree
-        ? (st.learned ? 'Изучено навыков: ' + st.learned + ' из ' + st.total : 'Навыки ещё не изучены')
+        ? (st.learned ? 'Потрачено очков: ' + st.learned + ' из ' + SKILL_POINTS : 'Все ' + SKILL_POINTS + ' очков свободны')
         : (state.char ? 'Древо навыков есть не у всех персонажей' : 'Персонаж ещё не выбран');
       return;
     }
@@ -360,32 +387,102 @@
 
   /* ---------- вкладки ---------- */
 
+  var SKILL_POINTS = 15;
+
   function skillTreeForCurrent() {
     return state.char ? (SKILL_TREES[state.char] || null) : null;
   }
 
-  function skillStats(tree, skillsState) {
-    if (!tree) return { total: 0, learned: 0, pct: 0 };
-    var on = {};
-    ((skillsState && skillsState.list) || []).forEach(function (id) { on[id] = true; });
-    var total = 0, learned = 0;
+  function learnedFor(char) {
+    return ((state.builds && state.builds[char]) || []).slice();
+  }
+
+  function setLearned(char, list) {
+    if (!state.builds) state.builds = {};
+    state.builds[char] = list;
+  }
+
+  function skillParents(tree) {
+    if (tree._parents) return tree._parents;
+    var map = {};
+    var byId = {};
+    var byTitle = {};
+    tree.skills.forEach(function (s) {
+      byId[s.id] = s;
+      if (!s.lock && s.title && !byTitle[s.title]) byTitle[s.title] = s.id;
+    });
+    function add(child, parent) {
+      if (!map[child]) map[child] = [];
+      if (map[child].indexOf(parent) < 0) map[child].push(parent);
+    }
+    tree.skills.forEach(function (s) {
+      (s.connects || []).forEach(function (cid) { add(cid, s.id); });
+    });
+    // В данных часть связей «изучите навык "X"» не продублирована ребром.
+    tree.skills.forEach(function (s) {
+      if (s.lock) return;
+      var re = /[«"]([^»"]+)[»"]/g, m;
+      while ((m = re.exec(s.cond || ''))) {
+        var pid = byTitle[m[1]];
+        if (pid && pid !== s.id) add(s.id, pid);
+      }
+    });
+    tree._parents = map;
+    tree._byId = byId;
+    return map;
+  }
+
+  function skillCanLearn(tree, s, list) {
+    if (!s || s.lock) return false;
+    if (list.indexOf(s.id) >= 0) return false;
+    var map = skillParents(tree);
+    var byId = tree._byId || {};
+    var need = (map[s.id] || []).filter(function (pid) {
+      var p = byId[pid];
+      // Условия в игре сайт не проверяет: считаем их выполненными.
+      return !(p && p.lock);
+    });
+    if (!need.length) return true;
+    return need.every(function (pid) { return list.indexOf(pid) >= 0; });
+  }
+
+  function skillDependents(tree, id, list) {
+    var parents = skillParents(tree);
+    var out = [];
+    list.forEach(function (lid) {
+      if (lid !== id && (parents[lid] || []).indexOf(id) >= 0) out.push(lid);
+    });
+    return out;
+  }
+
+  function skillStats(tree) {
+    if (!tree) return { total: 0, learned: 0, pct: 0, left: SKILL_POINTS };
+    var list = learnedFor(state.char);
+    var valid = {};
+    var total = 0;
     tree.skills.forEach(function (s) {
       if (s.lock) return;
       total++;
-      if (on[s.id]) learned++;
+      if (list.indexOf(s.id) >= 0) valid[s.id] = true;
     });
-    return { total: total, learned: learned, pct: total ? Math.round(learned * 100 / total) : 0 };
+    var learned = Object.keys(valid).length;
+    return {
+      total: total,
+      learned: learned,
+      pct: Math.round(learned * 100 / SKILL_POINTS),
+      left: Math.max(0, SKILL_POINTS - learned)
+    };
   }
 
   function renderTabs() {
     var html = '';
     var tree = skillTreeForCurrent();
-    var st = skillStats(tree, state.skills);
+    var st = skillStats(tree);
     CATS.forEach(function (c) {
       if (c.id === 'chronicle') {
         html += '<button class="tab' + (state.tab === 'skills' ? ' is-on' : '') + '" data-tab="skills">' +
           '<span class="tab__icon" aria-hidden="true">✦</span>Навыки' +
-          '<span class="tab__count">' + (tree ? st.learned + '/' + st.total : '—') + '</span></button>';
+          '<span class="tab__count">' + (tree ? st.learned + '/' + SKILL_POINTS : '—') + '</span></button>';
       }
       var p;
       if (c.id === 'progress') {
@@ -474,35 +571,21 @@
     els.empty.hidden = list.length > 0;
   }
 
-  var SKILL_THRESHOLDS = [3, 3, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5];
-
-  function xpProgress(xp) {
-    var total = 0;
-    for (var i = 0; i < SKILL_THRESHOLDS.length; i++) total += SKILL_THRESHOLDS[i];
-    if (xp >= total) return 100;
-    var prev = 0, next = total, cum = 0;
-    for (var j = 0; j < SKILL_THRESHOLDS.length; j++) {
-      cum += SKILL_THRESHOLDS[j];
-      if (xp < cum) { next = cum; break; }
-      prev = cum;
-    }
-    if (next <= prev) return 100;
-    return Math.max(0, Math.min(100, Math.round((xp - prev) * 100 / (next - prev))));
-  }
-
   function renderSkills() {
     var tree = skillTreeForCurrent();
     els.grid.hidden = false;
     if (!state.char) {
       els.empty.hidden = true;
       var chars = CHARACTERS.map(function (c) {
+        var used = (state.builds[c.key] || []).length;
         return '<button type="button" class="pick" data-skillchar="' + esc(c.key) + '">' +
           '<img src="' + esc(c.head) + '" alt="" loading="lazy">' +
-          '<span>' + esc(c.name) + '</span></button>';
+          '<span>' + esc(c.name) + '</span>' +
+          '<span class="pick__pts">' + used + ' / ' + SKILL_POINTS + '</span></button>';
       }).join('');
       els.grid.innerHTML = '<div class="skillpick">' +
         '<h3 class="skillpick__title">Древо навыков</h3>' +
-        '<p class="skillpick__lead">Выбери персонажа, чтобы посмотреть его древо навыков.</p>' +
+        '<p class="skillpick__lead">Выбери персонажа и распредели ' + SKILL_POINTS + ' очков между навыками.</p>' +
         '<div class="picks">' + chars + '</div></div>';
       return;
     }
@@ -513,18 +596,16 @@
     }
     els.empty.hidden = true;
 
-    var skillsState = (state.skills && state.skills.char === state.char) ? state.skills : null;
+    var list = learnedFor(state.char);
     var learned = {};
-    ((skillsState && skillsState.list) || []).forEach(function (id) { learned[id] = true; });
+    list.forEach(function (id) { learned[id] = true; });
 
     var byId = {};
     tree.skills.forEach(function (s) { byId[s.id] = s; });
 
     var available = {};
     tree.skills.forEach(function (s) {
-      if (s.lock || learned[s.id]) return;
-      var parents = (s.connects || []).filter(function (id) { return learned[id]; });
-      if (s.root || parents.length) available[s.id] = true;
+      if (!s.lock && !learned[s.id] && skillCanLearn(tree, s, list)) available[s.id] = true;
     });
 
     var pad = 44;
@@ -583,16 +664,16 @@
         icon + glyph + '</g>';
     }).join('');
 
-    var points = skillsState ? (skillsState.points || 0) : 0;
-    var xp = skillsState ? (skillsState.xp || 0) : 0;
-    var xpPct = xpProgress(xp);
-    var insight = skillsState
-      ? '<div class="skilltree__insight"><span class="skilltree__star">✦</span><b>' + points + '</b><span>озарения</span></div>'
-      : '<div class="skilltree__insight skilltree__insight--off">Навыки не отмечены</div>';
-    var xpBlock = skillsState
-      ? '<div class="skilltree__xp"><div class="skilltree__xpbar"><i style="width:' + xpPct + '%"></i></div>' +
-        '<span class="skilltree__xptext">Опыт: <b>' + xp + '</b></span></div>'
-      : '';
+    var used = list.length;
+    var left = Math.max(0, SKILL_POINTS - used);
+    var ptsPct = Math.round(used * 100 / SKILL_POINTS);
+    var insight = '<div class="skilltree__insight"><span class="skilltree__star">✦</span><b>' + left +
+      '</b><span>из ' + SKILL_POINTS + ' свободно</span></div>';
+    var xpBlock = '<div class="skilltree__xp">' +
+      '<div class="skilltree__xpbar"><i style="width:' + ptsPct + '%"></i></div>' +
+      '<span class="skilltree__xptext">Очки: <b>' + used + '</b> / ' + SKILL_POINTS + '</span>' +
+      '<button class="btn btn--ghost skilltree__reset" data-skillreset="1">Сбросить</button>' +
+      '</div>';
     var face = tree.head ? '<img class="skilltree__face" src="' + esc(tree.head) + '" alt="">' : '';
 
     var lockConds = [];
@@ -600,16 +681,17 @@
       if (s.lock && s.title && lockConds.indexOf(s.title) < 0) lockConds.push(s.title);
     });
     var lockBlock = lockConds.length
-      ? '<details class="skilltree__locks" open><summary>Условия открытия (' + lockConds.length + ')</summary><ul>' +
+      ? '<details class="skilltree__locks"><summary>Условия открытия в игре (' + lockConds.length +
+        ') — здесь не блокируют</summary><ul>' +
         lockConds.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul></details>'
       : '';
 
     els.grid.innerHTML = '<div class="skilltree">' +
       '<div class="skilltree__head">' + face +
-        '<div class="skilltree__title"><h3>' + esc(tree.name) + '</h3><p>Древо навыков</p></div>' +
+        '<div class="skilltree__title"><h3>' + esc(tree.name) + '</h3><p>Древо навыков · ' + SKILL_POINTS + ' очков</p></div>' +
         insight +
         '<button class="btn btn--ghost skilltree__change" data-skillchange="1">Сменить персонажа</button>' +
-        '<div class="skilltree__legend"><span class="is-on">изучено</span><span>не изучено</span><span class="is-lock">условие</span></div>' +
+        '<div class="skilltree__legend"><span class="is-on">изучено</span><span>доступно</span><span class="is-lock">условие</span></div>' +
       '</div>' + xpBlock +
       '<div class="skilltree__canvas">' +
         '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid meet">' +
@@ -617,7 +699,7 @@
           '<g class="skilltree__lines">' + lines.join('') + '</g>' +
           '<g class="skilltree__nodes">' + nodes + '</g>' +
         '</svg></div>' +
-      '<div class="skilltree__details" id="skill-details">Нажми на навык, чтобы прочитать описание.</div>' +
+      '<div class="skilltree__details" id="skill-details">Нажми на доступный навык, чтобы изучить его за 1 очко.</div>' +
       lockBlock +
       '<div class="skilltip" id="skill-tip" hidden></div>' +
       '</div>';
@@ -638,14 +720,11 @@
       return found;
     }
     function statusOf(s) {
-      var list = (state.skills && state.skills.list) || [];
+      var list = learnedFor(state.char);
       var on = list.indexOf(s.id) >= 0;
-      var av = false;
-      if (!s.lock && !on) {
-        var parents = (s.connects || []).filter(function (pid) { return list.indexOf(pid) >= 0; });
-        av = !!(s.root || parents.length);
-      }
-      return s.lock ? 'Условие открытия' : (on ? 'Изучен' : (av ? 'Доступен' : 'Не изучен'));
+      if (s.lock) return 'Условие открытия';
+      if (on) return 'Изучен';
+      return skillCanLearn(tree, s, list) ? 'Доступен' : 'Сначала изучите предыдущий навык';
     }
     function placeTip(e) {
       if (!tip) return;
@@ -683,21 +762,16 @@
       var g = e.target.closest ? e.target.closest('.sknode') : null;
       if (!g) return;
       var id = g.getAttribute('data-skill');
-      var s = null;
-      tree.skills.forEach(function (x) { if (x.id === id) s = x; });
+      var s = skillById(id);
       if (!s) return;
 
       var prev = box.querySelector('.sknode.is-selected');
       if (prev) prev.classList.remove('is-selected');
       g.classList.add('is-selected');
 
-      var list = (state.skills && state.skills.list) || [];
+      var list = learnedFor(state.char);
       var on = list.indexOf(s.id) >= 0;
-      var av = false;
-      if (!s.lock && !on) {
-        var parents = (s.connects || []).filter(function (pid) { return list.indexOf(pid) >= 0; });
-        av = !!(s.root || parents.length);
-      }
+      var can = !s.lock && !on && skillCanLearn(tree, s, list);
       var icon = s.icon
         ? '<img class="skilltree__dicon" src="' + esc(s.icon) + '" alt="">'
         : '<span class="skilltree__dicon skilltree__dicon--lock">' +
@@ -706,6 +780,7 @@
               '<rect x="-8" y="-2" width="16" height="12" rx="2"/>' +
               '<circle cx="0" cy="4.5" r="1.5"/>' +
             '</svg></span>';
+
       if (s.lock) {
         details.innerHTML = icon + '<div class="skilltree__dtext">' +
           '<h4>Условие открытия</h4>' +
@@ -713,13 +788,31 @@
           '</div>';
         return;
       }
-      var status = on ? 'Изучен' : (av ? 'Доступен' : 'Не изучен');
+
+      var status = on ? 'Изучен' : (can ? 'Доступен' : 'Не изучен');
       details.innerHTML = icon + '<div class="skilltree__dtext">' +
         '<h4>' + esc(s.title) + '</h4>' +
-        '<p class="skilltree__status' + (on ? ' is-on' : (av ? ' is-available' : '')) + '">' + status + '</p>' +
+        '<p class="skilltree__status' + (on ? ' is-on' : (can ? ' is-available' : '')) + '">' + status + '</p>' +
         (s.desc ? '<p>' + esc(s.desc) + '</p>' : '') +
         (s.cond && s.cond !== '-' ? '<p class="skilltree__cond">Условие: ' + esc(s.cond) + '</p>' : '') +
+        '<p class="skilltree__cost">Стоимость: <b>1</b> очко · свободно <b>' +
+          Math.max(0, SKILL_POINTS - list.length) + '</b> из ' + SKILL_POINTS + '</p>' +
+        (on ? '<button class="btn btn--ghost skilltree__remove" data-skillremove="' + esc(s.id) + '">Снять навык</button>' : '') +
         '</div>';
+
+      if (on || !can) {
+        if (!on) toast('Сначала изучите предыдущий навык');
+        return;
+      }
+      if (list.length >= SKILL_POINTS) {
+        toast('Все ' + SKILL_POINTS + ' очков уже потрачены');
+        return;
+      }
+      list.push(s.id);
+      setLearned(state.char, list);
+      save();
+      toast('Изучено: ' + s.title + ' · свободно ' + (SKILL_POINTS - list.length));
+      renderAll();
     });
   }
 
@@ -1379,7 +1472,6 @@
     var skillChar = e.target.closest('[data-skillchar]');
     if (skillChar) {
       state.char = skillChar.dataset.skillchar;
-      state.skills = null;
       save();
       renderAll();
       return;
@@ -1387,9 +1479,41 @@
     var skillChange = e.target.closest('[data-skillchange]');
     if (skillChange) {
       state.char = '';
-      state.skills = null;
       save();
       renderAll();
+      return;
+    }
+    var skillReset = e.target.closest('[data-skillreset]');
+    if (skillReset) {
+      var tr = skillTreeForCurrent();
+      if (!tr) return;
+      if (!confirm('Сбросить все навыки ' + tr.name + '? Очки вернутся.')) return;
+      setLearned(state.char, []);
+      save();
+      renderAll();
+      toast('Навыки сброшены · все ' + SKILL_POINTS + ' очков свободны');
+      return;
+    }
+    var skillRemove = e.target.closest('[data-skillremove]');
+    if (skillRemove) {
+      var tr2 = skillTreeForCurrent();
+      if (!tr2) return;
+      var sid = skillRemove.dataset.skillremove;
+      var list = learnedFor(state.char);
+      var deps = skillDependents(tr2, sid, list);
+      if (deps.length) {
+        var names = deps.map(function (did) {
+          var found = null;
+          tr2.skills.forEach(function (x) { if (x.id === did) found = x; });
+          return found ? found.title : did;
+        });
+        toast('Сначала снимите: ' + names.join(', '));
+        return;
+      }
+      setLearned(state.char, list.filter(function (x) { return x !== sid; }));
+      save();
+      renderAll();
+      toast('Навык снят');
       return;
     }
     var craftCat = e.target.closest('[data-craftcat]');
@@ -1445,11 +1569,11 @@
   function exportData() {
     var payload = {
       app: 'dst-compendium',
-      version: 3,
+      version: 4,
       appVersion: APP_VERSION,
       savedAt: new Date().toISOString(),
       char: state.char,
-      skills: state.skills,
+      builds: state.builds,
       silhouettes: state.silhouettes,
       kills: state.kills,
       marks: state.marks
@@ -1482,7 +1606,15 @@
         if (data.marks && typeof data.marks === 'object') state.marks = data.marks;
         var ch = data.char || (data.run && data.run.char) || '';
         state.char = typeof ch === 'string' ? (CHAR_ALIASES[ch] || ch) : '';
-        state.skills = sanitizeSkills(data.skills);
+        state.builds = sanitizeBuilds(data.builds);
+        if (!Object.keys(state.builds).length && data.skills && data.skills.char) {
+          var ich = CHAR_ALIASES[data.skills.char] || data.skills.char;
+          var one = {};
+          one[ich] = data.skills.list || [];
+          var clean = sanitizeBuilds(one);
+          if (clean[ich]) state.builds[ich] = clean[ich];
+          if (!state.char) state.char = ich;
+        }
         if (typeof data.silhouettes === 'boolean') state.silhouettes = data.silhouettes;
         els.silhouettes.checked = state.silhouettes;
         save();

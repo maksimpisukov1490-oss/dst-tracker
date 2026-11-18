@@ -753,7 +753,7 @@ body{
 }
 .skilltree__legend .is-on::before{ background:#3d3a1e; border-color:#e0c05a; }
 .skilltree__legend .is-lock::before{ border-style:dashed; border-color:#5a4a4a; }
-.skilltree__xp{ display:flex; align-items:center; gap:12px; margin:-4px 0 12px; }
+.skilltree__xp{ display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:-4px 0 12px; }
 .skilltree__xpbar{
   flex:1; height:8px; border-radius:6px; overflow:hidden;
   background:#c9b489; border:1px solid #7a5528;
@@ -968,3 +968,11 @@ body{
 .skillpick__lead{ margin:6px 0 16px; color:var(--ink-2); font-size:15px; }
 .skillpick .picks{ grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); }
 .skilltree__change{ margin-left:auto; }
+
+/* --- навыки: очки и управление ----------------------------- */
+.pick__pts{ font-size:10.5px; letter-spacing:.4px; color:#8a6a1f; }
+.pick.is-on .pick__pts{ color:#3f4a1e; }
+.skilltree__reset{ margin-left:auto; }
+.skilltree__remove{ margin-top:10px; }
+.skilltree__cost{ font-size:12.5px; color:#6b5436; }
+.skilltree__cost b{ color:#2f2210; }
