@@ -54,6 +54,7 @@
     silhouettes: true,
     char: '',
     builds: {},
+    skillConds: { celestial: false, fuelweaver: false },
     kills: {},
     marks: {},
     variantPick: {},
@@ -150,6 +151,11 @@
     }
 
     state.builds = sanitizeBuilds(builds);
+    var conds = (data && data.conds) || {};
+    state.skillConds = {
+      celestial: conds.celestial === true,
+      fuelweaver: conds.fuelweaver === true
+    };
 
     // Старый одиночный блок skills -> сборка этого персонажа.
     if (legacySkills && legacySkills.char && Array.isArray(legacySkills.list)) {
@@ -171,6 +177,7 @@
         version: 4,
         char: state.char,
         builds: state.builds,
+        conds: state.skillConds,
         kills: state.kills,
         marks: state.marks,
         silhouettes: state.silhouettes,
@@ -402,6 +409,21 @@
     state.builds[char] = list;
   }
 
+  var RU_NUMBERS = {
+    'один': 1, 'одного': 1, 'одна': 1, 'одну': 1,
+    'два': 2, 'две': 2, 'двух': 2,
+    'три': 3, 'трёх': 3, 'трех': 3,
+    'четыре': 4, 'четырёх': 4, 'четырех': 4,
+    'пять': 5, 'пяти': 5,
+    'шесть': 6, 'шести': 6,
+    'семь': 7, 'семи': 7,
+    'восемь': 8, 'восьми': 8,
+    'девять': 9, 'девяти': 9,
+    'десять': 10, 'десяти': 10,
+    'одиннадцать': 11, 'одиннадцати': 11,
+    'двенадцать': 12, 'двенадцати': 12
+  };
+
   function skillParents(tree) {
     if (tree._parents) return tree._parents;
     var map = {};
@@ -421,8 +443,11 @@
     // В данных часть связей «изучите навык "X"» не продублирована ребром.
     tree.skills.forEach(function (s) {
       if (s.lock) return;
+      // «не нужен "X"» — это запрет, а не обязательный предыдущий навык.
+      var positive = (s.cond || '').replace(
+        /(?:не\s+(?:нужен|нужны|изучать|изучите|открывать|открывайте))[^.;]*/gi, '');
       var re = /[«"]([^»"]+)[»"]/g, m;
-      while ((m = re.exec(s.cond || ''))) {
+      while ((m = re.exec(positive))) {
         var pid = byTitle[m[1]];
         if (pid && pid !== s.id) add(s.id, pid);
       }
@@ -432,14 +457,103 @@
     return map;
   }
 
+  function hasBranch(tree, list, kind) {
+    var byId = tree._byId || {};
+    return list.some(function (id) {
+      var s = byId[id];
+      if (!s) return false;
+      var key = s.id.toLowerCase();
+      return kind === 'lunar' ? key.indexOf('lunar') >= 0 : key.indexOf('shadow') >= 0;
+    });
+  }
+
+  function skillGroupByText(tree, text) {
+    var t = String(text || '').toLowerCase();
+    var found = '';
+    Object.keys(tree.groups || {}).forEach(function (gid) {
+      if (found) return;
+      var label = String(tree.groups[gid] || '').toLowerCase();
+      if (label.length < 4) return;
+      if (t.indexOf(label.slice(0, 4)) >= 0) found = gid;
+    });
+    return found;
+  }
+
+  function skillGroupCount(tree, list, gid) {
+    var byId = tree._byId || {};
+    var n = 0;
+    list.forEach(function (id) {
+      var s = byId[id];
+      if (s && !s.lock && s.group === gid) n++;
+    });
+    return n;
+  }
+
+  var SKILL_BRANCH_LOCK = /(?:не изучать|не изучайте|не открывать|не открывайте|не имейте|без)\s+(?:навыков\s+|навык\s+)?(тенев|лунн)/;
+
+  function skillCondTextMet(tree, text, list) {
+    var t = String(text || '').toLowerCase().trim();
+    if (!t) return true;
+
+    if (t.indexOf('небесн') >= 0 && !state.skillConds.celestial) return false;
+    if (t.indexOf('топливопряд') >= 0 && !state.skillConds.fuelweaver) return false;
+
+    var bm = t.match(SKILL_BRANCH_LOCK);
+    if (bm && hasBranch(tree, list, bm[1] === 'тенев' ? 'shadow' : 'lunar')) return false;
+
+    var m = t.match(/(?:изучит[еь]|открыть|откройте)\s+(?:как минимум\s+|минимум\s+)?(\d+|[а-яё]+)\s+навык(?:ов|а)?(?=\s|$|[.,;:])([\s\S]*)/);
+    if (m) {
+      var n = parseInt(m[1], 10);
+      if (isNaN(n)) n = RU_NUMBERS[m[1]] || 0;
+      if (n > 0) {
+        var rest = String(m[2] || '').trim();
+        var global = /^(?:[.,;:]|$|не\s|без\s|побед|открыть|изучит)/.test(rest);
+        if (global) {
+          if (list.length < n) return false;
+        } else if (!/полк|сторон|ветк/.test(rest)) {
+          var gid = skillGroupByText(tree, rest);
+          if (gid && skillGroupCount(tree, list, gid) < n) return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  function skillCondTexts(tree, s) {
+    var byId = tree._byId || {};
+    var texts = [];
+    if (s.cond) texts.push(s.cond);
+    (s.locks || []).forEach(function (id) {
+      var n = byId[id];
+      if (n && n.title) texts.push(n.title);
+    });
+    (skillParents(tree)[s.id] || []).forEach(function (pid) {
+      var p = byId[pid];
+      if (p && p.lock && p.title) texts.push(p.title);
+    });
+    var out = [];
+    texts.forEach(function (t) {
+      if (t && out.indexOf(t) < 0) out.push(t);
+    });
+    return out;
+  }
+
+  function skillCondMet(tree, s, list) {
+    var texts = skillCondTexts(tree, s);
+    for (var i = 0; i < texts.length; i++) {
+      if (!skillCondTextMet(tree, texts[i], list)) return false;
+    }
+    return true;
+  }
+
   function skillCanLearn(tree, s, list) {
     if (!s || s.lock) return false;
     if (list.indexOf(s.id) >= 0) return false;
+    if (!skillCondMet(tree, s, list)) return false;
     var map = skillParents(tree);
     var byId = tree._byId || {};
     var need = (map[s.id] || []).filter(function (pid) {
       var p = byId[pid];
-      // Условия в игре сайт не проверяет: считаем их выполненными.
       return !(p && p.lock);
     });
     if (!need.length) return true;
@@ -691,9 +805,18 @@
     });
     var lockBlock = lockConds.length
       ? '<details class="skilltree__locks"><summary>Условия открытия в игре (' + lockConds.length +
-        ') — здесь не блокируют</summary><ul>' +
+        ')</summary><p class="skilltree__lockshint">Убийства боссов включаются тумблерами; ' +
+        'остальные условия считаются по отмеченным навыкам.</p><ul>' +
         lockConds.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul></details>'
       : '';
+    var conds = state.skillConds || {};
+    var condRow = '<div class="skillconds">' +
+      '<span class="skillconds__label">Условия:</span>' +
+      '<button class="chip' + (conds.celestial ? ' is-on' : '') + '" data-skillcond="celestial" ' +
+        'aria-pressed="' + (conds.celestial ? 'true' : 'false') + '">☀ Небесный защитник побеждён</button>' +
+      '<button class="chip' + (conds.fuelweaver ? ' is-on' : '') + '" data-skillcond="fuelweaver" ' +
+        'aria-pressed="' + (conds.fuelweaver ? 'true' : 'false') + '">☾ Древний топливопряд побеждён</button>' +
+      '</div>';
 
     els.grid.innerHTML = '<div class="skilltree">' +
       '<div class="skilltree__head">' + face +
@@ -701,7 +824,7 @@
         insight +
         '<button class="btn btn--ghost skilltree__change" data-skillchange="1">Сменить персонажа</button>' +
         '<div class="skilltree__legend"><span class="is-on">изучено</span><span>доступно</span><span class="is-lock">условие</span></div>' +
-      '</div>' + xpBlock +
+      '</div>' + xpBlock + condRow +
       '<div class="skilltree__canvas">' +
         '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid meet">' +
           '<g class="skilltree__groups">' + groupLabels + '</g>' +
@@ -733,7 +856,8 @@
       var on = list.indexOf(s.id) >= 0;
       if (s.lock) return 'Условие открытия';
       if (on) return 'Изучен';
-      return skillCanLearn(tree, s, list) ? 'Доступен' : 'Сначала изучите предыдущий навык';
+      if (skillCanLearn(tree, s, list)) return 'Доступен';
+      return skillCondMet(tree, s, list) ? 'Сначала изучите предыдущий навык' : 'Условие не выполнено';
     }
     function placeTip(e) {
       if (!tip) return;
@@ -803,7 +927,12 @@
         '<h4>' + esc(s.title) + '</h4>' +
         '<p class="skilltree__status' + (on ? ' is-on' : (can ? ' is-available' : '')) + '">' + status + '</p>' +
         (s.desc ? '<p>' + esc(s.desc) + '</p>' : '') +
-        (s.cond && s.cond !== '-' ? '<p class="skilltree__cond">Условие: ' + esc(s.cond) + '</p>' : '') +
+        (function () {
+          var texts = skillCondTexts(tree, s).filter(function (t) { return t && t !== '-'; });
+          return texts.length ? '<p class="skilltree__cond">Условие: ' + esc(texts.join(' · ')) + '</p>' : '';
+        })() +
+        (on || can ? '' : '<p class="skilltree__cond">' +
+          (skillCondMet(tree, s, list) ? 'Сначала изучите предыдущий навык.' : 'Условие не выполнено.') + '</p>') +
         '<p class="skilltree__cost">Стоимость: <b>1</b> очко · свободно <b>' +
           Math.max(0, SKILL_POINTS - list.length) + '</b> из ' + SKILL_POINTS + '</p>' +
         (on ? '<button class="btn btn--ghost skilltree__remove" data-skillremove="' + esc(s.id) + '">Снять навык</button>' : '') +
@@ -1492,6 +1621,17 @@
       renderAll();
       return;
     }
+    var skillCond = e.target.closest('[data-skillcond]');
+    if (skillCond) {
+      var ckey = skillCond.dataset.skillcond;
+      if (ckey !== 'celestial' && ckey !== 'fuelweaver') return;
+      state.skillConds[ckey] = !state.skillConds[ckey];
+      save();
+      renderAll();
+      toast((state.skillConds[ckey] ? 'Условие включено: ' : 'Условие выключено: ') +
+        (ckey === 'celestial' ? 'Небесный защитник' : 'Древний топливопряд'));
+      return;
+    }
     var skillReset = e.target.closest('[data-skillreset]');
     if (skillReset) {
       var tr = skillTreeForCurrent();
@@ -1583,6 +1723,7 @@
       savedAt: new Date().toISOString(),
       char: state.char,
       builds: state.builds,
+      conds: state.skillConds,
       silhouettes: state.silhouettes,
       kills: state.kills,
       marks: state.marks
@@ -1616,6 +1757,12 @@
         var ch = data.char || (data.run && data.run.char) || '';
         state.char = typeof ch === 'string' ? (CHAR_ALIASES[ch] || ch) : '';
         state.builds = sanitizeBuilds(data.builds);
+        if (data.conds && typeof data.conds === 'object') {
+          state.skillConds = {
+            celestial: data.conds.celestial === true,
+            fuelweaver: data.conds.fuelweaver === true
+          };
+        }
         if (!Object.keys(state.builds).length && data.skills && data.skills.char) {
           var ich = CHAR_ALIASES[data.skills.char] || data.skills.char;
           var one = {};
