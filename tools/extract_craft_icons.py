@@ -18,7 +18,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 IMAGES = Path("/mnt/data/SteamLibrary/steamapps/common/Don't Starve Together/data/databundles/images.zip")
-OUT = ROOT / "assets" / "craft"
+OUT = ROOT / "assets" / "craft-v2"
 RAW = ROOT / "tools" / "recipes_raw.json"
 ATLASES = ("inventoryimages", "inventoryimages1", "inventoryimages2", "inventoryimages3", "inventoryimages4")
 

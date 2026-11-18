@@ -934,8 +934,14 @@
     return out;
   }
 
+  function craftAsset(src) {
+    if (!src) return '';
+    if (location.protocol === 'file:') return src;
+    return src + (src.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(APP_VERSION);
+  }
+
   function craftIconHtml(r, cls) {
-    if (r && r.icon) return '<img class="' + cls + '" src="' + esc(r.icon) + '" alt="" loading="lazy">';
+    if (r && r.icon) return '<img class="' + cls + '" src="' + esc(craftAsset(r.icon)) + '" alt="" loading="lazy">';
     return '<span class="' + cls + ' craft-icon--empty">⚒</span>';
   }
 
@@ -988,7 +994,7 @@
       delete path[rid];
     }
     return '<li>' +
-      (icon ? '<img class="craft-tree__icon" src="' + esc(icon) + '" alt="">' : '<span class="craft-tree__dot"></span>') +
+      (icon ? '<img class="craft-tree__icon" src="' + esc(craftAsset(icon)) + '" alt="">' : '<span class="craft-tree__dot"></span>') +
       '<span class="craft-tree__name">' + label + '</span>' +
       (r ? '<span class="craft-tree__note">' + esc(r.tech_text) + '</span>' : '') +
       children + '</li>';

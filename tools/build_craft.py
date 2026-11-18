@@ -23,7 +23,7 @@ META = ROOT / "tools" / "recipe_meta.json"
 PO = Path("/mnt/data/SteamLibrary/steamapps/common/Don't Starve Together/data/databundles/scripts/languages/russian.po")
 PO_ZIP = Path("/mnt/data/SteamLibrary/steamapps/common/Don't Starve Together/data/databundles/scripts.zip")
 OUT = ROOT / "js" / "craft.js"
-ICON_DIR = ROOT / "assets" / "craft"
+ICON_DIR = ROOT / "assets" / "craft-v2"
 ITEM_DIR = ROOT / "assets" / "items"
 
 CATEGORY_ORDER = [
