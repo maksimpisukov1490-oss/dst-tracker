@@ -42,6 +42,16 @@
     fw_summon: ['ancient_fuelweaver']
   };
   var CHAIN_IDS = ['wagstaff', 'charlie', 'celestial_champion', 'ancient_fuelweaver'];
+  var BRANCH_BOSSES = {
+    lunar: [
+      'celestial_champion', 'celestial_scion', 'celestial_revenant',
+      'crystal_deerclops', 'armored_bearger', 'possessed_varg'
+    ],
+    shadow: [
+      'ancient_fuelweaver', 'ancient_guardian', 'shrouded_queen',
+      'umbral_abomination', 'shadow_pieces'
+    ]
+  };
 
   var MILESTONE_IDS = {};
   (function () {
@@ -81,6 +91,7 @@
     char: '',
     builds: {},
     skillConds: { celestial: false, fuelweaver: false },
+    chainDone: {},
     kills: {},
     marks: {},
     variantPick: {},
@@ -99,6 +110,15 @@
       k.note = typeof k.note === 'string' ? k.note : '';
     });
     return kills;
+  }
+
+  function sanitizeChainDone(done) {
+    var out = {};
+    if (!done || typeof done !== 'object') return out;
+    Object.keys(done).forEach(function (id) {
+      if (done[id] && MILESTONE_IDS[id]) out[id] = true;
+    });
+    return out;
   }
 
   function sanitizeBuilds(builds) {
@@ -182,6 +202,7 @@
       celestial: conds.celestial === true,
       fuelweaver: conds.fuelweaver === true
     };
+    state.chainDone = sanitizeChainDone(data && data.chainDone);
 
     // Старый одиночный блок skills -> сборка этого персонажа.
     if (legacySkills && legacySkills.char && Array.isArray(legacySkills.list)) {
@@ -208,6 +229,7 @@
         char: state.char,
         builds: state.builds,
         conds: state.skillConds,
+        chainDone: state.chainDone,
         kills: state.kills,
         marks: state.marks,
         silhouettes: state.silhouettes,
@@ -351,25 +373,29 @@
     CHAIN_IDS.forEach(function (id) {
       var g = null;
       (MILESTONES.groups || []).forEach(function (x) { if (x.id === id) g = x; });
-      if (g && chainState(g, kills).complete) done++;
+      if (g && chainState(g, kills, state.chainDone).complete) done++;
     });
     return { done: done, total: total, pct: total ? Math.round(done * 100 / total) : 0 };
   }
 
   function overallProgress() { return progressFor(state.kills, state.marks); }
 
-  // Цепочка линейна: убийство босса закрывает её шаг и все шаги до него.
-  function chainState(g, kills) {
+  // Цепочка линейна: выполненный шаг закрывает все шаги до него.
+  function chainStepDone(it, kills, manual) {
+    if (manual && manual[it.id]) return true;
+    var gates = CHAIN_GATES[it.id];
+    if (!gates || !gates.length) return false;
+    return gates.every(function (slug) {
+      var k = kills && kills[slug];
+      return !!(k && parseInt(k.count, 10) > 0);
+    });
+  }
+
+  function chainState(g, kills, manual) {
     var items = g.items || [];
     var last = -1;
     items.forEach(function (it, i) {
-      var gates = CHAIN_GATES[it.id];
-      if (!gates || !gates.length) return;
-      var ok = gates.every(function (slug) {
-        var k = kills && kills[slug];
-        return !!(k && parseInt(k.count, 10) > 0);
-      });
-      if (ok) last = i;
+      if (chainStepDone(it, kills, manual)) last = i;
     });
     var done = last + 1;
     var complete = done >= items.length;
@@ -382,6 +408,13 @@
       complete: complete,
       next: complete ? null : items[done]
     };
+  }
+
+  function bossBySlug(slug) {
+    for (var i = 0; i < BOSSES.length; i++) {
+      if (BOSSES[i].slug === slug) return BOSSES[i];
+    }
+    return null;
   }
 
   function renderHead() {
@@ -1106,7 +1139,7 @@
   }
 
   function chainCard(g) {
-    var st = chainState(g, state.kills);
+    var st = chainState(g, state.kills, state.chainDone);
     var html = '<div class="pbar-card chain">' +
       '<div class="pbar-card__head"><h3>' +
       (g.icon_img ? '<img class="pbar-card__iconimg" src="' + esc(g.icon_img) + '" alt="">' : '') +
@@ -1120,22 +1153,36 @@
         '<p class="chain__next-note">Все ' + st.total + ' шагов закрыты.</p></div>';
     } else if (st.next) {
       html += '<div class="chain__next">' +
-        '<span class="chain__next-label">Следующий шаг</span>' +
-        '<span class="chain__next-name">' +
-        (st.next.icon_img ? '<img src="' + esc(st.next.icon_img) + '" alt="">' : '') +
-        esc(st.next.name) + '</span>' +
+        '<div class="chain__next-head"><div>' +
+          '<span class="chain__next-label">Следующий шаг</span>' +
+          '<span class="chain__next-name">' +
+          (st.next.icon_img ? '<img src="' + esc(st.next.icon_img) + '" alt="">' : '') +
+          esc(st.next.name) + '</span>' +
+        '</div>' +
+        '<button class="btn chain__done" data-chainstep="' + esc(st.next.id) + '">Выполнить шаг</button>' +
+        '</div>' +
         (st.next.note ? '<p class="chain__next-note">' + esc(st.next.note) + '</p>' : '') +
         '</div>';
     }
 
-    html += '<details class="chain__all"><summary>Весь путь (' + st.total + ')</summary>' +
+    html += '<details class="chain__all">' +
+      '<summary class="chain__toggle"><span>Показать весь путь</span>' +
+      '<span class="chain__toggle-count">' + st.total + ' шагов</span></summary>' +
       '<ol class="chain__steps">' + st.items.map(function (it, i) {
-        var cls = 'chain__step' + (i <= st.last ? ' is-done' : (i === st.last + 1 ? ' is-next' : ''));
+        var done = i <= st.last;
+        var next = i === st.last + 1;
+        var cls = 'chain__step' + (done ? ' is-done' : (next ? ' is-next' : ''));
+        var btn = '';
+        if (done && state.chainDone && state.chainDone[it.id]) {
+          btn = '<button class="chain__stepbtn" data-chainstep="' + esc(it.id) + '" data-off="1">Снять</button>';
+        } else if (!done) {
+          btn = '<button class="chain__stepbtn" data-chainstep="' + esc(it.id) + '">Выполнить</button>';
+        }
         return '<li class="' + cls + '">' +
           (it.icon_img ? '<img src="' + esc(it.icon_img) + '" alt="">' : '') +
           '<span class="chain__step-body"><b>' + esc(it.name) + '</b>' +
           (it.note ? '<span class="chain__note">' + esc(it.note) + '</span>' : '') +
-          '</span></li>';
+          '</span>' + btn + '</li>';
       }).join('') + '</ol></details>';
 
     return html + '</div>';
@@ -1147,13 +1194,28 @@
     });
     if (!chains.length) return '';
     var complete = 0;
-    chains.forEach(function (g) { if (chainState(g, state.kills).complete) complete++; });
+    chains.forEach(function (g) { if (chainState(g, state.kills, state.chainDone).complete) complete++; });
     var name = br.id === 'lunar' ? 'Лунная ветка' : (br.id === 'shadow' ? 'Теневая ветка' : br.name);
     var icon = br.id === 'lunar' ? '☀' : (br.id === 'shadow' ? '☾' : '✦');
+
+    var bossChips = (BRANCH_BOSSES[br.id] || []).map(function (slug) {
+      var b = bossBySlug(slug);
+      if (!b) return '';
+      var killed = isKilled(slug);
+      var locked = !killed && state.silhouettes;
+      return '<button class="branch-boss' + (killed ? ' is-killed' : '') + (locked ? ' is-locked' : '') +
+        '" data-slug="' + esc(slug) + '" title="' + esc(b.name_ru) + '">' +
+        '<img src="' + esc(art(b)) + '" alt="">' +
+        '<span class="branch-boss__name">' + esc(b.name_ru) + '</span>' +
+        '<span class="branch-boss__state">' + (killed ? 'побеждён' : 'не побеждён') + '</span></button>';
+    }).join('');
+
     return '<div class="branch">' +
       '<div class="branch__head"><h3>' + icon + ' ' + esc(name) + '</h3>' +
       '<p>' + esc(br.hint || '') + '</p>' +
       '<span class="branch__num">Цепочки: ' + complete + ' / ' + chains.length + '</span></div>' +
+      (bossChips ? '<div class="branch__bosses"><span class="branch__bosses-label">Боссы ветки</span>' +
+        '<div class="branch__bosslist">' + bossChips + '</div></div>' : '') +
       chains.map(chainCard).join('') +
       '</div>';
   }
@@ -1738,6 +1800,18 @@
       renderAll();
       return;
     }
+    var chainStep = e.target.closest('[data-chainstep]');
+    if (chainStep) {
+      var cid = chainStep.dataset.chainstep;
+      var off = chainStep.dataset.off === '1';
+      if (!state.chainDone) state.chainDone = {};
+      if (off) delete state.chainDone[cid];
+      else state.chainDone[cid] = true;
+      save();
+      renderAll();
+      toast(off ? 'Отметка шага снята' : 'Шаг выполнен');
+      return;
+    }
     var skillCond = e.target.closest('[data-skillcond]');
     if (skillCond) {
       var ckey = skillCond.dataset.skillcond;
@@ -1841,6 +1915,7 @@
       char: state.char,
       builds: state.builds,
       conds: state.skillConds,
+      chainDone: state.chainDone,
       silhouettes: state.silhouettes,
       kills: state.kills,
       marks: state.marks
@@ -1880,6 +1955,7 @@
             fuelweaver: data.conds.fuelweaver === true
           };
         }
+        state.chainDone = sanitizeChainDone(data.chainDone);
         if (!Object.keys(state.builds).length && data.skills && data.skills.char) {
           var ich = CHAR_ALIASES[data.skills.char] || data.skills.char;
           var one = {};
