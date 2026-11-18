@@ -93,6 +93,9 @@ def main() -> int:
                 if x2 <= x1 or y2 <= y1:
                     continue
                 crop = image.crop((x1, y1, x2, y2))
+                # В игровых атласах V-координаты идут снизу вверх:
+                # после кропа иконка получается перевёрнутой.
+                crop = crop.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
                 crop.thumbnail((64, 64), Image.LANCZOS)
                 canvas = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
                 canvas.paste(crop, ((64 - crop.width) // 2, (64 - crop.height) // 2), crop)
