@@ -10,8 +10,16 @@
   var CATS = (window.CATEGORIES || []).filter(function (c) {
     return c.id === 'all' || c.id === 'mini' || c.id === 'progress' || c.id === 'chronicle';
   }).map(function (c) {
-    if (c.id !== 'all') return c;
-    return { id: 'all', name: 'Все боссы', short: 'Все', icon: c.icon, hint: 'Все боссы, кроме мини-боссов' };
+    if (c.id === 'all') {
+      return { id: 'all', name: 'Все боссы', short: 'Все', icon: c.icon, hint: 'Все боссы, кроме мини-боссов' };
+    }
+    if (c.id === 'progress') {
+      return {
+        id: 'progress', name: c.name, short: c.short, icon: c.icon,
+        hint: 'Боссы, жемчужина отшельницы и четыре цепочки: лунная и теневая'
+      };
+    }
+    return c;
   });
   var BOSSES = (window.BOSSES || []).slice();
   var CHARACTERS = window.CHARACTERS || [];
@@ -21,6 +29,19 @@
   var CHAR_ALIASES = { wathgrithr: 'wigfrid', waxwell: 'maxwell' };
   var APP_VERSION = window.APP_VERSION || '1.0.0';
   var APP_BUILD = window.APP_BUILD || '';
+
+  var CHAIN_GATES = {
+    wag_spark: ['crystal_deerclops', 'armored_bearger', 'possessed_varg'],
+    wag_revenant: ['celestial_revenant'],
+    wag_selector: ['celestial_scion'],
+    charlie_queen: ['shrouded_queen'],
+    charlie_abomination: ['umbral_abomination'],
+    charlie_gifts: ['umbral_abomination'],
+    cc_awaken: ['celestial_champion'],
+    fw_key: ['ancient_guardian'],
+    fw_summon: ['ancient_fuelweaver']
+  };
+  var CHAIN_IDS = ['wagstaff', 'charlie', 'celestial_champion', 'ancient_fuelweaver'];
 
   var MILESTONE_IDS = {};
   (function () {
@@ -313,24 +334,55 @@
     };
   }
 
-  // Общий прогресс: боссы + по одной награде за каждую группу вех + отдельные вехи.
+  // Общий прогресс: боссы + жемчужина отшельницы + четыре квестовые цепочки.
   function progressFor(kills, marks) {
-    var total = BOSSES.length + (MILESTONES.groups || []).length + (MILESTONES.items || []).length;
+    var total = BOSSES.length + 1 + CHAIN_IDS.length;
     var done = 0;
     BOSSES.forEach(function (b) {
-      var k = kills[b.slug];
+      var k = kills && kills[b.slug];
       if (k && k.count > 0) done++;
     });
     (MILESTONES.groups || []).forEach(function (g) {
-      var items = g.items || [], raw = 0;
-      items.forEach(function (it) { if (marks[it.id]) raw++; });
+      if (g.id !== 'hermit') return;
+      var raw = 0;
+      (g.items || []).forEach(function (it) { if (marks && marks[it.id]) raw++; });
       if (raw >= groupLimit(g)) done++;
     });
-    (MILESTONES.items || []).forEach(function (it) { if (marks[it.id]) done++; });
+    CHAIN_IDS.forEach(function (id) {
+      var g = null;
+      (MILESTONES.groups || []).forEach(function (x) { if (x.id === id) g = x; });
+      if (g && chainState(g, kills).complete) done++;
+    });
     return { done: done, total: total, pct: total ? Math.round(done * 100 / total) : 0 };
   }
 
   function overallProgress() { return progressFor(state.kills, state.marks); }
+
+  // Цепочка линейна: убийство босса закрывает её шаг и все шаги до него.
+  function chainState(g, kills) {
+    var items = g.items || [];
+    var last = -1;
+    items.forEach(function (it, i) {
+      var gates = CHAIN_GATES[it.id];
+      if (!gates || !gates.length) return;
+      var ok = gates.every(function (slug) {
+        var k = kills && kills[slug];
+        return !!(k && parseInt(k.count, 10) > 0);
+      });
+      if (ok) last = i;
+    });
+    var done = last + 1;
+    var complete = done >= items.length;
+    return {
+      items: items,
+      last: last,
+      done: done,
+      total: items.length,
+      pct: items.length ? Math.round(done * 100 / items.length) : 0,
+      complete: complete,
+      next: complete ? null : items[done]
+    };
+  }
 
   function renderHead() {
     var isProgress = state.tab === 'progress';
@@ -1053,45 +1105,89 @@
     return html;
   }
 
+  function chainCard(g) {
+    var st = chainState(g, state.kills);
+    var html = '<div class="pbar-card chain">' +
+      '<div class="pbar-card__head"><h3>' +
+      (g.icon_img ? '<img class="pbar-card__iconimg" src="' + esc(g.icon_img) + '" alt="">' : '') +
+      esc(g.name) + '</h3>' +
+      '<span class="pbar-card__num">' + st.done + ' / ' + st.total + ' · ' + st.pct + '%</span></div>' +
+      '<div class="progress__bar"><i style="width:' + st.pct + '%"></i></div>';
+
+    if (st.complete) {
+      html += '<div class="chain__next chain__next--done">' +
+        '<span class="chain__next-label">Цепочка пройдена</span>' +
+        '<p class="chain__next-note">Все ' + st.total + ' шагов закрыты.</p></div>';
+    } else if (st.next) {
+      html += '<div class="chain__next">' +
+        '<span class="chain__next-label">Следующий шаг</span>' +
+        '<span class="chain__next-name">' +
+        (st.next.icon_img ? '<img src="' + esc(st.next.icon_img) + '" alt="">' : '') +
+        esc(st.next.name) + '</span>' +
+        (st.next.note ? '<p class="chain__next-note">' + esc(st.next.note) + '</p>' : '') +
+        '</div>';
+    }
+
+    html += '<details class="chain__all"><summary>Весь путь (' + st.total + ')</summary>' +
+      '<ol class="chain__steps">' + st.items.map(function (it, i) {
+        var cls = 'chain__step' + (i <= st.last ? ' is-done' : (i === st.last + 1 ? ' is-next' : ''));
+        return '<li class="' + cls + '">' +
+          (it.icon_img ? '<img src="' + esc(it.icon_img) + '" alt="">' : '') +
+          '<span class="chain__step-body"><b>' + esc(it.name) + '</b>' +
+          (it.note ? '<span class="chain__note">' + esc(it.note) + '</span>' : '') +
+          '</span></li>';
+      }).join('') + '</ol></details>';
+
+    return html + '</div>';
+  }
+
+  function branchSection(br, groups) {
+    var chains = groups.filter(function (g) {
+      return g.branch === br.id && g.id !== 'hermit';
+    });
+    if (!chains.length) return '';
+    var complete = 0;
+    chains.forEach(function (g) { if (chainState(g, state.kills).complete) complete++; });
+    var name = br.id === 'lunar' ? 'Лунная ветка' : (br.id === 'shadow' ? 'Теневая ветка' : br.name);
+    var icon = br.id === 'lunar' ? '☀' : (br.id === 'shadow' ? '☾' : '✦');
+    return '<div class="branch">' +
+      '<div class="branch__head"><h3>' + icon + ' ' + esc(name) + '</h3>' +
+      '<p>' + esc(br.hint || '') + '</p>' +
+      '<span class="branch__num">Цепочки: ' + complete + ' / ' + chains.length + '</span></div>' +
+      chains.map(chainCard).join('') +
+      '</div>';
+  }
+
   function renderProgress() {
     els.grid.hidden = false;
     els.empty.hidden = true;
     var o = overallProgress();
     var bp = progress(BOSSES);
+    var groups = MILESTONES.groups || [];
+    var hermit = null;
+    groups.forEach(function (g) { if (g.id === 'hermit') hermit = g; });
 
     var html = '<div class="progress-view">';
     html += pbarCard('Общий прогресс', o,
-      'Боссы + награды за квестовые ветки + вехи. 100% — всё закрыто.');
+      'Боссы + жемчужина отшельницы + четыре квестовые цепочки. 100% — всё закрыто.');
     html += pbarCard('Боссы', bp, 'Все записи компендиума.');
+    html += '<p class="progress-note">Галочки — только у отшельницы. ' +
+      'Лунная и теневая цепочки идут по убитым боссам и показывают следующий шаг.</p>';
 
-    var groups = MILESTONES.groups || [];
-    var done = {};
+    if (hermit) html += groupCard(hermit);
+
     (MILESTONE_BRANCHES || []).forEach(function (br) {
-      var list = groups.filter(function (g) { return g.branch === br.id; });
-      if (!list.length) return;
-      html += '<div class="branch"><div class="branch__head"><h3>' + esc(br.name) + '</h3>' +
-        (br.hint ? '<p>' + esc(br.hint) + '</p>' : '') + '</div>';
-      list.forEach(function (g) { html += groupCard(g); done[g.id] = 1; });
-      html += '</div>';
+      html += branchSection(br, groups);
     });
-    groups.forEach(function (g) { if (!done[g.id]) html += groupCard(g); });
 
-    var mi = MILESTONES.items || [];
-    if (mi.length) {
-      var md = 0;
-      mi.forEach(function (it) { if (markOn(it.id)) md++; });
-      html += '<div class="pbar-card">' +
-        '<div class="pbar-card__head"><h3>Вехи</h3>' +
-        '<span class="pbar-card__num">' + md + ' / ' + mi.length + ' · ' +
-        Math.round(md * 100 / mi.length) + '%</span></div>' +
-        '<div class="marks">' + mi.map(function (it) { return markHtml(it); }).join('') + '</div>' +
-        '</div>';
-    }
     html += '</div>';
     els.grid.innerHTML = html;
   }
 
   function toggleMark(id) {
+    var hermit = null;
+    (MILESTONES.groups || []).forEach(function (g) { if (g.id === 'hermit') hermit = g; });
+    if (!hermit || !(hermit.items || []).some(function (it) { return it.id === id; })) return;
     var name = '';
     milestoneItems().forEach(function (m) { if (m.id === id) name = m.name; });
     if (state.marks[id]) {
