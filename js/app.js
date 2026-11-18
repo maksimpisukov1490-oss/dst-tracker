@@ -41,6 +41,10 @@
     fw_key: ['ancient_guardian'],
     fw_summon: ['ancient_fuelweaver']
   };
+  var BRANCH_ORDER = {
+    lunar: ['celestial_champion', 'wagstaff'],
+    shadow: ['ancient_fuelweaver', 'charlie']
+  };
   var BRANCH_BOSSES = {
     lunar: [
       'celestial_champion', 'celestial_scion', 'celestial_revenant',
@@ -357,10 +361,19 @@
 
   function mergedBranchGroup(br, groups) {
     var items = [];
-    (groups || []).forEach(function (g) {
-      if (g.branch !== br.id || g.id === 'hermit') return;
-      items = items.concat(g.items || []);
-    });
+    var order = BRANCH_ORDER[br.id];
+    if (order) {
+      order.forEach(function (gid) {
+        (groups || []).forEach(function (g) {
+          if (g.id === gid) items = items.concat(g.items || []);
+        });
+      });
+    } else {
+      (groups || []).forEach(function (g) {
+        if (g.branch !== br.id || g.id === 'hermit') return;
+        items = items.concat(g.items || []);
+      });
+    }
     return { id: 'branch_' + br.id, name: br.name, branch: br.id, items: items };
   }
 
@@ -1200,6 +1213,9 @@
     var st = chainState(merged, state.kills, state.chainDone);
     var name = br.id === 'lunar' ? 'Лунная ветка' : (br.id === 'shadow' ? 'Теневая ветка' : br.name);
     var icon = br.id === 'lunar' ? '☀' : (br.id === 'shadow' ? '☾' : '✦');
+    var hint = br.id === 'lunar'
+      ? 'Сначала Небесный защитник, затем Вагстаф.'
+      : (br.id === 'shadow' ? 'Сначала Древний топливопряд, затем Чарли.' : (br.hint || ''));
 
     var bossChips = (BRANCH_BOSSES[br.id] || []).map(function (slug) {
       var b = bossBySlug(slug);
@@ -1216,7 +1232,7 @@
     return '<div class="branch">' +
       '<div class="pbar-card branch-card">' +
         '<div class="branch__head"><h3>' + icon + ' ' + esc(name) + '</h3>' +
-        '<p>' + esc(br.hint || '') + '</p>' +
+        '<p>' + esc(hint) + '</p>' +
         '<span class="branch__num">' + st.done + ' / ' + st.total + ' · ' + st.pct + '%</span></div>' +
         '<div class="progress__bar"><i style="width:' + st.pct + '%"></i></div>' +
         (bossChips ? '<div class="branch__bosses"><span class="branch__bosses-label">Боссы ветки</span>' +
