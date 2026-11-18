@@ -577,11 +577,13 @@
     if (!state.char) {
       els.empty.hidden = true;
       var chars = CHARACTERS.map(function (c) {
+        var hasTree = !!SKILL_TREES[c.key];
         var used = (state.builds[c.key] || []).length;
-        return '<button type="button" class="pick" data-skillchar="' + esc(c.key) + '">' +
+        return '<button type="button" class="pick' + (hasTree ? '' : ' is-off') + '" ' +
+          'data-skillchar="' + esc(c.key) + '"' + (hasTree ? '' : ' disabled') + '>' +
           '<img src="' + esc(c.head) + '" alt="" loading="lazy">' +
           '<span>' + esc(c.name) + '</span>' +
-          '<span class="pick__pts">' + used + ' / ' + SKILL_POINTS + '</span></button>';
+          '<span class="pick__pts">' + (hasTree ? used + ' / ' + SKILL_POINTS : 'нет древа') + '</span></button>';
       }).join('');
       els.grid.innerHTML = '<div class="skillpick">' +
         '<h3 class="skillpick__title">Древо навыков</h3>' +
@@ -590,8 +592,15 @@
       return;
     }
     if (!tree) {
-      els.empty.hidden = false;
-      els.grid.innerHTML = '';
+      els.empty.hidden = true;
+      var who = '';
+      CHARACTERS.forEach(function (c) { if (c.key === state.char) who = c.name; });
+      els.grid.innerHTML = '<div class="skillpick">' +
+        '<h3 class="skillpick__title">Древа нет</h3>' +
+        '<p class="skillpick__lead">' + (who ? esc(who) : 'Этот персонаж') +
+          ' не имеет древа навыков в игре. Выбери другого персонажа.</p>' +
+        '<button class="btn btn--big skillpick__back" data-skillchange="1">К выбору персонажа</button>' +
+        '</div>';
       return;
     }
     els.empty.hidden = true;
