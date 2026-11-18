@@ -7,8 +7,12 @@
   var STORAGE_KEY = 'dst-compendium-v2';
   var LEGACY_KEY = 'dst-compendium-v1';
 
-  var CATS = window.CATEGORIES || [];
-  var BOSSES = (window.BOSSES || []).slice();
+  var CATS = (window.CATEGORIES || []).filter(function (c) {
+    return c.id === 'mini' || c.id === 'progress' || c.id === 'chronicle';
+  });
+  var BOSSES = (window.BOSSES || []).filter(function (b) {
+    return b.category === 'mini';
+  });
   var CHARACTERS = window.CHARACTERS || [];
   var MILESTONES = window.MILESTONES || { groups: [], items: [] };
   var SKILL_TREES = window.SKILL_TREES || {};
@@ -48,7 +52,7 @@
   /* ---------- состояние ---------- */
 
   var state = {
-    tab: 'all',
+    tab: 'mini',
     filter: 'all',
     query: '',
     silhouettes: true,
@@ -168,6 +172,10 @@
       }
       if (!state.char) state.char = lch;
     }
+
+    var tabOk = state.tab === 'skills' || state.tab === 'craft';
+    CATS.forEach(function (c) { if (c.id === state.tab) tabOk = true; });
+    if (!tabOk) state.tab = 'mini';
   }
 
   var saveTimer = null;
@@ -255,7 +263,7 @@
 
   function scope() {
     // список боссов, к которым применяется прогресс текущей вкладки
-    if (state.tab === 'chronicle' || state.tab === 'all') return BOSSES;
+    if (state.tab === 'chronicle') return BOSSES;
     return BOSSES.filter(function (b) { return b.category === state.tab; });
   }
 
@@ -373,7 +381,6 @@
     var cat = state.tab === 'chronicle'
       ? { name: 'Хроника охоты', hint: 'Все победы по порядку — от первой до последней' }
       : catOf(state.tab);
-    if (state.tab === 'all') { cat = { name: 'Все чудовища', hint: catOf('all').hint }; }
 
     els.title.textContent = cat.name;
     els.hint.textContent = cat.hint || '';
@@ -602,7 +609,7 @@
       if (c.id === 'progress') {
         p = overallProgress();
       } else {
-        var list = c.id === 'all' ? BOSSES : BOSSES.filter(function (b) { return b.category === c.id; });
+        var list = BOSSES.filter(function (b) { return b.category === c.id; });
         p = progress(list);
       }
       if (c.id === 'chronicle') {
@@ -635,7 +642,7 @@
   function visible() {
     var q = state.query.trim().toLowerCase();
     return BOSSES.filter(function (b) {
-      if (state.tab !== 'all' && state.tab !== 'chronicle' && b.category !== state.tab) return false;
+      if (state.tab !== 'chronicle' && b.category !== state.tab) return false;
       var k = isKilled(b.slug);
       if (state.filter === 'killed' && !k) return false;
       if (state.filter === 'alive' && k) return false;
