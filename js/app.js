@@ -370,17 +370,21 @@
   function updateGridStamp(selector, on, text) {
     var card = els.grid.querySelector(selector);
     if (!card) return;
-    var icon = card.querySelector('.craft-card__icon, .cook-recipe__icon');
-    if (!icon) return;
-    var st = icon.querySelector('.stamp');
-    if (on && !st) icon.insertAdjacentHTML('beforeend', markStamp(text, 'stamp--card'));
-    if (!on && st) st.parentNode.removeChild(st);
+    var isCraftCard = card.classList.contains('craft-card');
+    card.classList.toggle(isCraftCard ? 'is-crafted' : 'is-eaten', on);
+    var st = null;
+    [].forEach.call(card.children, function (ch) {
+      if (ch.classList && ch.classList.contains('stamp')) st = ch;
+    });
+    if (on && !st) card.insertAdjacentHTML('afterbegin', markStamp(text, 'stamp--card'));
+    if (!on && st) card.removeChild(st);
   }
 
   function setCraftedUI(on) {
     updateMarkUI('.craft-detail__icon', '[data-craftmark]', on,
-      'Скрафчено', 'Отметить скрафченным');
-    updateGridStamp('[data-craft="' + state.craftId + '"]', on, 'Скрафчено');
+      'Получено', 'Отметить полученным');
+    updateGridStamp('[data-craft="' + state.craftId + '"]', on, 'Получено');
+    renderHead();
   }
 
   function setEatenUI(on) {
@@ -388,14 +392,16 @@
       'Съедено', 'Отметить съеденным');
     updateGridStamp('[data-cookrecipe="' + state.cookRecipeId + '"]', on, 'Съедено');
     var icon = document.querySelector('.cook-result__icon');
-    if (!icon) return;
-    var st = icon.querySelector('.stamp');
-    var ev = (state.kitchenSlots || []).length === 4 ? cookEvaluate(state.kitchenSlots) : null;
-    var current = ev && ev.results.length ? ev.results[0].recipe.id : null;
-    if (current === state.cookRecipeId) {
-      if (on && !st) icon.insertAdjacentHTML('beforeend', markStamp('Съедено', 'stamp--card'));
-      if (!on && st) st.parentNode.removeChild(st);
+    if (icon) {
+      var st = icon.querySelector('.stamp');
+      var ev = (state.kitchenSlots || []).length === 4 ? cookEvaluate(state.kitchenSlots) : null;
+      var current = ev && ev.results.length ? ev.results[0].recipe.id : null;
+      if (current === state.cookRecipeId) {
+        if (on && !st) icon.insertAdjacentHTML('beforeend', markStamp('Съедено', 'stamp--card'));
+        if (!on && st) st.parentNode.removeChild(st);
+      }
     }
+    renderHead();
   }
 
   /* ---------- утилиты ---------- */
@@ -587,6 +593,10 @@
     return null;
   }
 
+  function pctText(v) {
+    return String(Math.round(v * 10) / 10).replace('.', ',') + '%';
+  }
+
   function renderHead() {
     var isProgress = state.tab === 'progress';
     var isSkills = state.tab === 'skills';
@@ -597,23 +607,34 @@
       els.toolbar.classList.toggle('is-craft', isCraft);
     }
     if (isKitchen) {
+      var cookTotal = (COOK.recipes || []).length;
+      var eatenCount = Object.keys(state.eaten || {}).length;
+      var eatenPct = cookTotal ? Math.round(eatenCount / cookTotal * 1000) / 10 : 0;
       els.title.textContent = 'Кухня';
       els.hint.textContent = 'Симулятор казана: 4 ингредиента — одно блюдо';
-      els.pCount.textContent = (COOK.recipes || []).length;
-      els.pPercent.textContent = '';
-      els.pFill.style.width = '0%';
-      els.pCaption.textContent = 'Рецептов в казане';
+      els.pCount.textContent = eatenCount + ' / ' + cookTotal;
+      els.pPercent.textContent = pctText(eatenPct);
+      els.pFill.style.width = eatenPct + '%';
+      els.pCaption.textContent = eatenCount === 0
+        ? 'Пока ни одно блюдо не отмечено'
+        : (eatenCount === cookTotal ? 'Все блюда попробованы!'
+          : 'Съедено блюд: ' + eatenCount + ' из ' + cookTotal);
       return;
     }
     if (isCraft) {
       var total = Object.keys(CRAFT.recipes || {}).length;
+      var obtainedCount = Object.keys(state.crafted || {}).length;
+      var obtainedPct = total ? Math.round(obtainedCount / total * 1000) / 10 : 0;
       els.search.placeholder = 'Найти рецепт…';
       els.title.textContent = 'Книга рецептов';
       els.hint.textContent = 'Все рецепты DST: из чего делается и где используется';
-      els.pCount.textContent = total;
-      els.pPercent.textContent = '';
-      els.pFill.style.width = '0%';
-      els.pCaption.textContent = 'Рецептов в книге';
+      els.pCount.textContent = obtainedCount + ' / ' + total;
+      els.pPercent.textContent = pctText(obtainedPct);
+      els.pFill.style.width = obtainedPct + '%';
+      els.pCaption.textContent = obtainedCount === 0
+        ? 'Пока ничего не получено'
+        : (obtainedCount === total ? 'Все предметы получены!'
+          : 'Получено предметов: ' + obtainedCount + ' из ' + total);
       return;
     }
     els.search.placeholder = 'Найти чудовище…';
@@ -1830,10 +1851,10 @@
         (eaten ? ' is-eaten' : '') +
         '" type="button" data-cookrecipe="' + esc(r.id) + '" title="' +
         (can ? 'Варианты состава' : 'Пример состава не задан') + (r.warly ? ' · Варли' : '') + '">' +
-        (r.warly ? '<span class="cook-recipe__warly">Варли</span>' : '') +
-        '<span class="cook-recipe__icon">' + cookIconHtml(r, 'cook-recipe__img') +
-          (eaten ? markStamp('Съедено', 'stamp--card') : '') + '</span>' +
-        '<span class="cook-recipe__body"><b>' + esc(r.name) + '</b>' +
+        (eaten ? markStamp('Съедено', 'stamp--card') : '') +
+        '<span class="cook-recipe__icon">' + cookIconHtml(r, 'cook-recipe__img') + '</span>' +
+        '<span class="cook-recipe__body"><b>' + esc(r.name) +
+          (r.warly ? ' <span class="cook-recipe__warly">Варли</span>' : '') + '</b>' +
         '<span>' + cookNum(r.hunger) + ' голода · ' + cookVariants(r.examples.length) +
         '</span></span></button>';
     }).join('') + '</div>';
@@ -1947,8 +1968,8 @@
     var crafted = isCrafted(r.id);
     return '<button class="craft-card' + (crafted ? ' is-crafted' : '') +
       '" data-craft="' + esc(r.id) + '">' +
-      '<span class="craft-card__icon">' + craftIconHtml(r, 'craft-card__img') +
-        (crafted ? markStamp('Скрафчено', 'stamp--card') : '') + '</span>' +
+      (crafted ? markStamp('Получено', 'stamp--card') : '') +
+      '<span class="craft-card__icon">' + craftIconHtml(r, 'craft-card__img') + '</span>' +
       '<span class="craft-card__body">' +
         '<span class="craft-card__name">' + esc(r.name) + '</span>' +
         '<span class="craft-card__meta">' + esc(meta) + '</span>' +
@@ -2201,14 +2222,14 @@
         '<span class="craft-detail__barhint">Древо крафта: количества пересчитаны на один предмет</span></div>' +
       '<div class="craft-detail__head">' +
         '<div class="craft-detail__icon">' + craftIconHtml(r, 'craft-detail__img') +
-          (isCrafted(r.id) ? markStamp('Скрафчено', 'stamp--entry') : '') + '</div>' +
+          (isCrafted(r.id) ? markStamp('Получено', 'stamp--entry') : '') + '</div>' +
         '<div class="craft-detail__title">' +
           '<h2 id="entry-name">' + esc(r.name) + '</h2>' +
           '<p class="entry__latin">' + esc(r.name_en || '') + '</p>' +
           '<p class="craft-detail__meta">' + esc(meta) + '</p>' +
           '<button class="btn mark-btn' + (isCrafted(r.id) ? ' is-on' : '') +
             '" type="button" data-craftmark="1">' +
-            (isCrafted(r.id) ? 'Скрафчено ✓' : 'Отметить скрафченным') + '</button>' +
+            (isCrafted(r.id) ? 'Получено ✓' : 'Отметить полученным') + '</button>' +
         '</div>' +
       '</div>' +
       craftAlternativesHtml(r) +
@@ -2777,7 +2798,7 @@
     if (craftMark) {
       var craftedOn = toggleCrafted(state.craftId);
       setCraftedUI(craftedOn);
-      toast(craftedOn ? 'Предмет отмечен скрафченным' : 'Отметка «скрафчено» снята');
+      toast(craftedOn ? 'Предмет отмечен полученным' : 'Отметка «получено» снята');
       return;
     }
     var craftBackBtn = e.target.closest('[data-craftback]');
