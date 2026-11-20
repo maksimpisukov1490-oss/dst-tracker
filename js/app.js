@@ -27,6 +27,33 @@
   var SKILL_TREES = window.SKILL_TREES || {};
   var CRAFT = window.CRAFT_DATA || { categories: [], recipes: {}, by_product: {}, used_in: {} };
   var COOK = window.COOK_DATA || { groups: [], ingredients: {}, recipes: [] };
+  var QUOTES = window.QUOTES || null;
+  var quotesLoading = false;
+  var quotesWaiters = [];
+
+  function ensureQuotes(cb) {
+    if (window.QUOTES) {
+      QUOTES = window.QUOTES;
+      if (cb) cb();
+      return;
+    }
+    if (cb) quotesWaiters.push(cb);
+    if (quotesLoading) return;
+    quotesLoading = true;
+    var script = document.createElement('script');
+    script.src = 'js/quotes.js?v=' + (window.APP_VERSION || '1');
+    script.async = true;
+    script.onload = script.onerror = function () {
+      QUOTES = window.QUOTES || { craft: {}, chars: {} };
+      quotesLoading = false;
+      var list = quotesWaiters;
+      quotesWaiters = [];
+      list.forEach(function (fn) {
+        try { fn(); } catch (e) { /* ignore */ }
+      });
+    };
+    document.head.appendChild(script);
+  }
 
   // Карточки без иконок в книгу не пускаем.
   (function filterCraft() {
@@ -1150,6 +1177,7 @@
           '<g class="skilltree__nodes">' + nodes + '</g>' +
         '</svg></div>' +
       '<div class="skilltree__details" id="skill-details">Нажми на доступный навык, чтобы изучить его за 1 очко.</div>' +
+      quotesBlock((QUOTES && QUOTES.chars[state.char]) || [], 'Цитаты о персонаже') +
       lockBlock +
       '<div class="skilltip" id="skill-tip" hidden></div>' +
       '</div>';
@@ -2301,6 +2329,7 @@
       '</div>' +
       craftAlternativesHtml(r) +
       '<div class="craft-detail__cols">' + craftTreeHtml(r) + '</div>' +
+      quotesBlock((QUOTES && QUOTES.craft[r.product]) || [], 'Цитаты персонажей') +
       '</div>';
   }
 
@@ -2324,6 +2353,14 @@
     els.entryBody.parentNode.scrollTop = 0;
     if (wasHidden) trapEntryFocus();
     else focusCraftEntry();
+    if (!window.QUOTES) {
+      ensureQuotes(function () {
+        if (els.entry.hidden || state.craftId !== id) return;
+        var top = els.entryBody.parentNode.scrollTop;
+        els.entryBody.innerHTML = craftEntryHtml(r);
+        els.entryBody.parentNode.scrollTop = top;
+      });
+    }
   }
 
   function craftBack() {
@@ -2382,8 +2419,8 @@
       '</div>';
   }
 
-  function quotesBlock(b) {
-    var q = b.quotes || [];
+  function quotesBlock(src, title) {
+    var q = Array.isArray(src) ? src : ((src && src.quotes) || []);
     if (!q.length) return '';
     var heads = q.map(function (it, i) {
       var face = it.head
@@ -2399,7 +2436,7 @@
         '<div class="quote__text">«' + esc(it.text) + '»</div>' +
         '</div>';
     }).join('');
-    return '<div class="quotes"><h4>Цитаты персонажей</h4>' +
+    return '<div class="quotes"><h4>' + esc(title || 'Цитаты персонажей') + '</h4>' +
       '<div class="qheads">' + heads + '</div>' +
       '<div class="quotes__list">' + list + '</div></div>';
   }
@@ -2659,6 +2696,11 @@
     if (state.tab === 'craft') state.craftPage = 1;
     save();
     renderAll();
+    if (state.tab === 'craft' || state.tab === 'skills') {
+      ensureQuotes(function () {
+        if (state.tab === 'craft' || state.tab === 'skills') renderGrid();
+      });
+    }
   });
 
   els.filters.addEventListener('click', function (e) {
@@ -2694,6 +2736,17 @@
   });
 
   els.grid.addEventListener('click', function (e) {
+    var qh = e.target.closest('.qhead');
+    if (qh) {
+      var block = qh.closest('.quotes');
+      [].forEach.call(block.querySelectorAll('.qhead'), function (h) {
+        h.classList.toggle('is-on', h === qh);
+      });
+      [].forEach.call(block.querySelectorAll('.quote'), function (c) {
+        c.classList.toggle('is-on', c.dataset.quote === qh.dataset.q);
+      });
+      return;
+    }
     var cookIng = e.target.closest('[data-cooking]');
     if (cookIng) { openCookIngredient(cookIng.dataset.cooking); return; }
     var cookRemove = e.target.closest('[data-cookremove]');
@@ -3043,6 +3096,11 @@
     b.classList.toggle('is-on', b.dataset.filter === state.filter);
   });
   renderAll();
+  if (state.tab === 'craft' || state.tab === 'skills') {
+    ensureQuotes(function () {
+      if (state.tab === 'craft' || state.tab === 'skills') renderGrid();
+    });
+  }
   var versionEl = document.getElementById('app-version');
   if (versionEl) {
     versionEl.textContent = 'v' + APP_VERSION;
