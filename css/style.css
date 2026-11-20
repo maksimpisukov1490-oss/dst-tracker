@@ -1508,3 +1508,55 @@ body{
 }
 .cook-ing-detail__stats .cook-stats{ margin-top:8px; }
 .cook-ing-detail__note{ margin:14px 0 0; font-size:13.5px; color:#7a5528; }
+
+/* --- печати «скрафчено» и «съедено» ------------------------ */
+.craft-card__icon,
+.cook-recipe__icon,
+.cook-result__icon,
+.craft-detail__icon,
+.cook-detail__icon{ position:relative; }
+
+.craft-card__icon > .stamp,
+.cook-recipe__icon > .stamp,
+.cook-result__icon > .stamp{
+  top:50%; left:50%; right:auto; bottom:auto;
+  width:48px; height:48px; border-width:2px;
+  transform:translate(-50%,-50%) rotate(-14deg);
+  box-shadow:0 0 0 1px rgba(125,31,24,.2);
+}
+.craft-card__icon > .stamp span,
+.cook-recipe__icon > .stamp span,
+.cook-result__icon > .stamp span{
+  font-size:8px; line-height:1; letter-spacing:0; padding:0 1px;
+  overflow-wrap:anywhere;
+}
+.cook-result__icon > .stamp{ width:68px; height:68px; }
+.cook-result__icon > .stamp span{ font-size:11px; }
+
+.craft-detail__icon > .stamp--entry,
+.cook-detail__icon > .stamp--entry{
+  top:auto; right:-10px; bottom:-10px;
+  width:76px; height:76px; border-width:3px;
+}
+.craft-detail__icon > .stamp--entry span,
+.cook-detail__icon > .stamp--entry span{ font-size:12px; }
+
+.mark-btn{ align-self:flex-start; margin-top:10px; }
+.mark-btn.is-on{
+  color:#7d1f18; border-color:rgba(125,31,24,.65);
+  background:linear-gradient(rgba(125,31,24,.16), rgba(60,22,18,.28));
+}
+.cook-result .mark-btn{ margin-top:10px; }
+
+@media (max-width:620px){
+  .craft-card__icon > .stamp,
+  .cook-recipe__icon > .stamp{ width:44px; height:44px; }
+  .craft-card__icon > .stamp span,
+  .cook-recipe__icon > .stamp span{ font-size:7.5px; }
+  .craft-detail__icon > .stamp--entry,
+  .cook-detail__icon > .stamp--entry{
+    width:62px; height:62px; right:-8px; bottom:-8px;
+  }
+  .craft-detail__icon > .stamp--entry span,
+  .cook-detail__icon > .stamp--entry span{ font-size:9.5px; }
+}

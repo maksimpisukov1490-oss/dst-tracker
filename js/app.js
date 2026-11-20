@@ -144,6 +144,8 @@
     chainDone: {},
     kills: {},
     marks: {},
+    crafted: {},
+    eaten: {},
     variantPick: {},
     craftCat: 'all',
     craftPage: 1,
@@ -168,6 +170,15 @@
       k.note = typeof k.note === 'string' ? k.note : '';
     });
     return kills;
+  }
+
+  function sanitizeFlags(raw, allowed) {
+    var out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    Object.keys(raw).forEach(function (id) {
+      if (raw[id] && (!allowed || allowed[id])) out[id] = true;
+    });
+    return out;
   }
 
   function sanitizeChainDone(done) {
@@ -222,6 +233,8 @@
       if (picked) {
         state.kills = sanitizeKills(picked.kills || {});
         state.marks = (picked.marks && typeof picked.marks === 'object') ? picked.marks : {};
+        state.crafted = sanitizeFlags(picked.crafted);
+        state.eaten = sanitizeFlags(picked.eaten);
         state.char = typeof picked.char === 'string' ? (CHAR_ALIASES[picked.char] || picked.char) : '';
         legacySkills = picked.skills;
       }
@@ -232,6 +245,8 @@
       // новый формат: один общий дневник
       state.kills = sanitizeKills(data.kills || {});
       state.marks = (data.marks && typeof data.marks === 'object') ? data.marks : {};
+      state.crafted = sanitizeFlags(data.crafted);
+      state.eaten = sanitizeFlags(data.eaten);
       state.char = typeof data.char === 'string' ? (CHAR_ALIASES[data.char] || data.char) : '';
       builds = data.builds;
       legacySkills = data.skills;
@@ -246,6 +261,8 @@
           var old = JSON.parse(lraw);
           state.kills = sanitizeKills(old.kills || {});
           state.marks = (old.marks && typeof old.marks === 'object') ? old.marks : {};
+          state.crafted = sanitizeFlags(old.crafted);
+          state.eaten = sanitizeFlags(old.eaten);
           if (typeof old.silhouettes === 'boolean') state.silhouettes = old.silhouettes;
           if (old.tab) state.tab = old.tab;
           if (old.filter) state.filter = old.filter;
@@ -253,6 +270,13 @@
         }
       } catch (e) { /* старый формат нечитаем — пропускаем */ }
     }
+
+    var craftIds = {};
+    Object.keys(CRAFT.recipes || {}).forEach(function (id) { craftIds[id] = true; });
+    var foodIds = {};
+    (COOK.recipes || []).forEach(function (r) { foodIds[r.id] = true; });
+    state.crafted = sanitizeFlags(state.crafted, craftIds);
+    state.eaten = sanitizeFlags(state.eaten, foodIds);
 
     state.builds = sanitizeBuilds(builds);
     var conds = (data && data.conds) || {};
@@ -283,13 +307,15 @@
   function persist() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        version: 4,
+        version: 5,
         char: state.char,
         builds: state.builds,
         conds: state.skillConds,
         chainDone: state.chainDone,
         kills: state.kills,
         marks: state.marks,
+        crafted: state.crafted,
+        eaten: state.eaten,
         silhouettes: state.silhouettes,
         tab: state.tab,
         filter: state.filter
@@ -307,6 +333,70 @@
     return k;
   }
   function isKilled(slug) { return kill(slug).count > 0; }
+  function isCrafted(id) { return state.crafted[id] === true; }
+  function isEaten(id) { return state.eaten[id] === true; }
+  function toggleCrafted(id) {
+    if (!id) return false;
+    if (state.crafted[id]) delete state.crafted[id];
+    else state.crafted[id] = true;
+    save();
+    return isCrafted(id);
+  }
+  function toggleEaten(id) {
+    if (!id) return false;
+    if (state.eaten[id]) delete state.eaten[id];
+    else state.eaten[id] = true;
+    save();
+    return isEaten(id);
+  }
+  function markStamp(text, cls) {
+    return '<span class="stamp stamp--small ' + (cls || '') + '"><span>' + text + '</span></span>';
+  }
+
+  function updateMarkUI(iconSelector, btnSelector, on, text, offLabel) {
+    var icon = els.entryBody.querySelector(iconSelector);
+    if (icon) {
+      var st = icon.querySelector('.stamp');
+      if (on && !st) icon.insertAdjacentHTML('beforeend', markStamp(text, 'stamp--entry'));
+      if (!on && st) st.parentNode.removeChild(st);
+    }
+    var btn = els.entryBody.querySelector(btnSelector);
+    if (btn) {
+      btn.classList.toggle('is-on', on);
+      btn.textContent = on ? text + ' ✓' : offLabel;
+    }
+  }
+
+  function updateGridStamp(selector, on, text) {
+    var card = els.grid.querySelector(selector);
+    if (!card) return;
+    var icon = card.querySelector('.craft-card__icon, .cook-recipe__icon');
+    if (!icon) return;
+    var st = icon.querySelector('.stamp');
+    if (on && !st) icon.insertAdjacentHTML('beforeend', markStamp(text, 'stamp--card'));
+    if (!on && st) st.parentNode.removeChild(st);
+  }
+
+  function setCraftedUI(on) {
+    updateMarkUI('.craft-detail__icon', '[data-craftmark]', on,
+      'Скрафчено', 'Отметить скрафченным');
+    updateGridStamp('[data-craft="' + state.craftId + '"]', on, 'Скрафчено');
+  }
+
+  function setEatenUI(on) {
+    updateMarkUI('.cook-detail__icon', '[data-cookeaten]', on,
+      'Съедено', 'Отметить съеденным');
+    updateGridStamp('[data-cookrecipe="' + state.cookRecipeId + '"]', on, 'Съедено');
+    var icon = document.querySelector('.cook-result__icon');
+    if (!icon) return;
+    var st = icon.querySelector('.stamp');
+    var ev = (state.kitchenSlots || []).length === 4 ? cookEvaluate(state.kitchenSlots) : null;
+    var current = ev && ev.results.length ? ev.results[0].recipe.id : null;
+    if (current === state.cookRecipeId) {
+      if (on && !st) icon.insertAdjacentHTML('beforeend', markStamp('Съедено', 'stamp--card'));
+      if (!on && st) st.parentNode.removeChild(st);
+    }
+  }
 
   /* ---------- утилиты ---------- */
 
@@ -1613,12 +1703,16 @@
     var wasHidden = els.entry.hidden;
     els.entryBody.innerHTML = '<div class="cook-detail">' +
       '<div class="cook-detail__head">' +
-        '<div class="cook-detail__icon">' + cookIconHtml(r, 'cook-detail__img') + '</div>' +
+        '<div class="cook-detail__icon">' + cookIconHtml(r, 'cook-detail__img') +
+          (isEaten(r.id) ? markStamp('Съедено', 'stamp--entry') : '') + '</div>' +
         '<div class="cook-detail__title"><h2 id="entry-name">' + esc(r.name) + '</h2>' +
           '<p class="cook-detail__meta">' + esc(r.foodtype || 'Блюдо') +
             (r.warly ? ' · Варли' : '') + '</p></div>' +
       '</div>' +
       cookStats(r) +
+      '<button class="btn mark-btn' + (isEaten(r.id) ? ' is-on' : '') +
+        '" type="button" data-cookeaten="1">' +
+        (isEaten(r.id) ? 'Съедено ✓' : 'Отметить съеденным') + '</button>' +
       (r.warly ? '<p class="cook-detail__warly">Только портативный казан Варли.</p>' : '') +
       '<h3 class="cook-variations__title">Варианты состава</h3>' +
       '<p class="cook-detail__hint">Выбери состав — он сразу переедет в казан.</p>' +
@@ -1671,7 +1765,8 @@
     var multi = ev.results.length > 1;
     return '<div class="cook-result">' +
       '<div class="cook-result__head">' +
-        '<div class="cook-result__icon">' + cookIconHtml(r, 'cook-result__img') + '</div>' +
+        '<div class="cook-result__icon">' + cookIconHtml(r, 'cook-result__img') +
+          (isEaten(r.id) ? markStamp('Съедено', 'stamp--card') : '') + '</div>' +
         '<div class="cook-result__title"><h3>' + esc(r.name) + '</h3>' +
           '<p>' + esc(r.foodtype || 'Блюдо') + (r.warly ? ' · Варли' : '') +
             (multi ? ' · возможных результатов: ' + ev.results.length : '') + '</p></div>' +
@@ -1730,11 +1825,14 @@
     if (!list.length) return '<p class="cook-empty">Ничего не найдено.</p>';
     return '<div class="cook-recipes-grid">' + list.map(function (r) {
       var can = r.example && r.example.length;
+      var eaten = isEaten(r.id);
       return '<button class="cook-recipe' + (can ? '' : ' is-noex') + (r.warly ? ' is-warly' : '') +
+        (eaten ? ' is-eaten' : '') +
         '" type="button" data-cookrecipe="' + esc(r.id) + '" title="' +
         (can ? 'Варианты состава' : 'Пример состава не задан') + (r.warly ? ' · Варли' : '') + '">' +
         (r.warly ? '<span class="cook-recipe__warly">Варли</span>' : '') +
-        '<span class="cook-recipe__icon">' + cookIconHtml(r, 'cook-recipe__img') + '</span>' +
+        '<span class="cook-recipe__icon">' + cookIconHtml(r, 'cook-recipe__img') +
+          (eaten ? markStamp('Съедено', 'stamp--card') : '') + '</span>' +
         '<span class="cook-recipe__body"><b>' + esc(r.name) + '</b>' +
         '<span>' + cookNum(r.hunger) + ' голода · ' + cookVariants(r.examples.length) +
         '</span></span></button>';
@@ -1846,8 +1944,11 @@
   function craftCardHtml(r) {
     var meta = craftCatName(r.category);
     if (r.tech_text) meta += ' · ' + r.tech_text;
-    return '<button class="craft-card" data-craft="' + esc(r.id) + '">' +
-      '<span class="craft-card__icon">' + craftIconHtml(r, 'craft-card__img') + '</span>' +
+    var crafted = isCrafted(r.id);
+    return '<button class="craft-card' + (crafted ? ' is-crafted' : '') +
+      '" data-craft="' + esc(r.id) + '">' +
+      '<span class="craft-card__icon">' + craftIconHtml(r, 'craft-card__img') +
+        (crafted ? markStamp('Скрафчено', 'stamp--card') : '') + '</span>' +
       '<span class="craft-card__body">' +
         '<span class="craft-card__name">' + esc(r.name) + '</span>' +
         '<span class="craft-card__meta">' + esc(meta) + '</span>' +
@@ -2099,11 +2200,15 @@
       '<div class="craft-detail__bar">' + back +
         '<span class="craft-detail__barhint">Древо крафта: количества пересчитаны на один предмет</span></div>' +
       '<div class="craft-detail__head">' +
-        '<div class="craft-detail__icon">' + craftIconHtml(r, 'craft-detail__img') + '</div>' +
+        '<div class="craft-detail__icon">' + craftIconHtml(r, 'craft-detail__img') +
+          (isCrafted(r.id) ? markStamp('Скрафчено', 'stamp--entry') : '') + '</div>' +
         '<div class="craft-detail__title">' +
           '<h2 id="entry-name">' + esc(r.name) + '</h2>' +
           '<p class="entry__latin">' + esc(r.name_en || '') + '</p>' +
           '<p class="craft-detail__meta">' + esc(meta) + '</p>' +
+          '<button class="btn mark-btn' + (isCrafted(r.id) ? ' is-on' : '') +
+            '" type="button" data-craftmark="1">' +
+            (isCrafted(r.id) ? 'Скрафчено ✓' : 'Отметить скрафченным') + '</button>' +
         '</div>' +
       '</div>' +
       craftAlternativesHtml(r) +
@@ -2659,8 +2764,22 @@
       }
       return;
     }
+    var cookEaten = e.target.closest('[data-cookeaten]');
+    if (cookEaten) {
+      var eatenOn = toggleEaten(state.cookRecipeId);
+      setEatenUI(eatenOn);
+      toast(eatenOn ? 'Блюдо отмечено съеденным' : 'Отметка «съедено» снята');
+      return;
+    }
     var cookVar = e.target.closest('[data-cookvar]');
     if (cookVar) { kitchenUseVariation(parseInt(cookVar.dataset.cookvar, 10)); return; }
+    var craftMark = e.target.closest('[data-craftmark]');
+    if (craftMark) {
+      var craftedOn = toggleCrafted(state.craftId);
+      setCraftedUI(craftedOn);
+      toast(craftedOn ? 'Предмет отмечен скрафченным' : 'Отметка «скрафчено» снята');
+      return;
+    }
     var craftBackBtn = e.target.closest('[data-craftback]');
     if (craftBackBtn) { craftBack(); return; }
     var craftToggleAll = e.target.closest('[data-crafttoggle]');
@@ -2806,6 +2925,8 @@
     if (!confirm('Сжечь дневник? Отметки будут стёрты безвозвратно.')) return;
     state.kills = {};
     state.marks = {};
+    state.crafted = {};
+    state.eaten = {};
     persist();
     renderAll();
     toast('Дневник сожжён. Всё начинается заново');
