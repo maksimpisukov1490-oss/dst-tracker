@@ -1345,6 +1345,25 @@
   /* ---------- страница записи ---------- */
 
   var currentSlug = null;
+  var entryReturnFocus = null;
+
+  function trapEntryFocus() {
+    entryReturnFocus = document.activeElement;
+    var close = els.entry.querySelector('.entry__close');
+    if (close) close.focus();
+  }
+
+  function restoreEntryFocus() {
+    if (entryReturnFocus && entryReturnFocus.focus) entryReturnFocus.focus();
+    entryReturnFocus = null;
+  }
+
+  function focusCraftEntry() {
+    var target = els.entryBody.querySelector('[data-craftback]') ||
+      els.entryBody.querySelector('.craft-node__toggle') ||
+      els.entryBody.querySelector('.craft-node__name');
+    if (target && target.focus) target.focus();
+  }
 
   function fact(k, v) {
     if (v === null || v === undefined || v === '') return '';
@@ -1668,6 +1687,7 @@
       state.craftStack = [];
     }
     state.craftId = id;
+    var wasHidden = els.entry.hidden;
     var prev = document.getElementById('entry-prev');
     var next = document.getElementById('entry-next');
     if (prev) prev.hidden = true;
@@ -1676,6 +1696,8 @@
     els.entry.hidden = false;
     document.body.style.overflow = 'hidden';
     els.entryBody.parentNode.scrollTop = 0;
+    if (wasHidden) trapEntryFocus();
+    else focusCraftEntry();
   }
 
   function craftBack() {
@@ -1685,6 +1707,7 @@
     if (!r) return;
     els.entryBody.innerHTML = craftEntryHtml(r);
     els.entryBody.parentNode.scrollTop = 0;
+    focusCraftEntry();
   }
 
   function openEntry(slug) {
@@ -1699,9 +1722,11 @@
     state.craftId = null;
     state.craftStack = [];
     renderEntry(b);
+    var wasHidden = els.entry.hidden;
     els.entry.hidden = false;
     document.body.style.overflow = 'hidden';
     els.entryBody.parentNode.scrollTop = 0;
+    if (wasHidden) trapEntryFocus();
   }
 
   function closeEntry() {
@@ -1710,6 +1735,7 @@
     state.craftId = null;
     state.craftStack = [];
     document.body.style.overflow = '';
+    restoreEntryFocus();
   }
 
   function lootBlock(b, vp) {
@@ -2184,8 +2210,24 @@
   document.getElementById('entry-next').addEventListener('click', function () { step(1); });
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !els.entry.hidden) closeEntry();
+    if (e.key === 'Escape' && !els.entry.hidden) { closeEntry(); return; }
     if (els.entry.hidden) return;
+    if (e.key === 'Tab') {
+      var nodes = [].filter.call(
+        els.entry.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+        function (el) { return !el.disabled && el.offsetParent !== null; }
+      );
+      if (!nodes.length) return;
+      var first = nodes[0], last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+      return;
+    }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     if (e.key === 'ArrowLeft') step(-1);
     if (e.key === 'ArrowRight') step(1);
