@@ -1499,3 +1499,12 @@ body{
   .cook-ing-detail__icon{ width:84px; height:84px; flex-basis:84px; }
   .cook-ing-detail__img{ max-width:74px; max-height:74px; }
 }
+
+/* --- кухня: питательность ингредиента ---------------------- */
+.cook-ing-detail__stats{ margin-top:16px; }
+.cook-ing-detail__stats h3{
+  margin:0; font-family:var(--font-script); font-weight:700;
+  font-size:19px; color:#2f2210;
+}
+.cook-ing-detail__stats .cook-stats{ margin-top:8px; }
+.cook-ing-detail__note{ margin:14px 0 0; font-size:13.5px; color:#7a5528; }

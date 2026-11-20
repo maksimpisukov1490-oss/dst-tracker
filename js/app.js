@@ -1530,6 +1530,37 @@
       '<span class="cook-variation__action">Собрать</span></button>';
   }
 
+  function cookFoodNum(v) {
+    if (v === null || v === undefined) return '—';
+    var n = Math.round(v * 1000) / 1000;
+    var str = String(n).replace('.', ',');
+    return n > 0 ? '+' + str : str;
+  }
+
+  function cookPerishDays(days) {
+    if (!days) return 'не портится';
+    return String(Math.round(days * 10) / 10).replace('.', ',') + ' дн.';
+  }
+
+  function cookIngredientStats(ing) {
+    if (!ing.stats) {
+      return '<p class="cook-ing-detail__note">' +
+        (ing.inedible
+          ? 'Несъедобно — используется только в рецептах.'
+          : 'Нет данных о питательности.') + '</p>';
+    }
+    var st = ing.stats;
+    return '<div class="cook-ing-detail__stats">' +
+      '<h3>Если съесть</h3>' +
+      '<div class="cook-stats">' +
+        '<div class="cook-stat"><span>Голод</span><b>' + cookFoodNum(st.hunger) + '</b></div>' +
+        '<div class="cook-stat"><span>Здоровье</span><b>' + cookFoodNum(st.health) + '</b></div>' +
+        '<div class="cook-stat"><span>Рассудок</span><b>' + cookFoodNum(st.sanity) + '</b></div>' +
+        '<div class="cook-stat"><span>Портится</span><b>' + cookPerishDays(st.perish_days) + '</b></div>' +
+      '</div>' +
+      '</div>';
+  }
+
   function openCookIngredient(id) {
     var ing = COOK.ingredients[id];
     if (!ing) return;
@@ -1558,6 +1589,7 @@
           (ing.name_en ? ' · ' + esc(ing.name_en) : '') + '</p></div>' +
       '</div>' +
       '<div class="cook-ing-detail__tags">' + (tags || '<span>Без тегов</span>') + '</div>' +
+      cookIngredientStats(ing) +
       '<p class="cook-ing-detail__count">В казане сейчас: <b>' + count + '</b></p>' +
       '<button class="btn cook-ing-detail__add" type="button" data-cookadding="' + esc(id) +
         '">Добавить в казан</button>' +

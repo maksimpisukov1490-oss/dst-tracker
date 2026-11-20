@@ -57,6 +57,28 @@ ICON_ALIASES = {
     "batnose_dried": "batnose",
 }
 
+# Пищевая ценность ингредиентов берётся из Scrapbook-данных игры.
+STAT_ALIASES = {
+    "meat_cooked": "cookedmeat",
+    "monstermeat_cooked": "cookedmonstermeat",
+    "smallmeat_cooked": "cookedsmallmeat",
+    "mandrake_cooked": "cookedmandrake",
+    "egg": "bird_egg",
+    "egg_cooked": "bird_egg_cooked",
+    "honey_cooked": "honey",
+    "royal_jelly_cooked": "royal_jelly",
+    "cutlichen_cooked": "cutlichen",
+    "pondeel_cooked": "pondeel",
+}
+# Рыба и живой лобстер задаются в скриптах динамически, в Scrapbook их нет.
+STAT_MANUAL = {
+    "fish": {"hunger": 12.5, "health": 1, "sanity": 0, "perish": 1440},
+    "fish_cooked": {"hunger": 12.5, "health": 1, "sanity": 0, "perish": 2880},
+    "wobster_sheller_land": {"hunger": 12.5, "health": 1, "sanity": 0, "perish": 1440},
+}
+# Эти предметы в игре нельзя съесть — только положить в казан.
+INEDIBLE = {"honeycomb", "honeycomb_cooked", "lightninggoathorn", "mole", "boneshard", "nightmarefuel"}
+
 TUNING = {
     "HEALING_TINY": 1, "HEALING_SMALL": 3, "HEALING_MEDSMALL": 8,
     "HEALING_MOREMEDSMALL": 15, "HEALING_MED": 20, "HEALING_MEDLARGE": 30,
@@ -271,11 +293,47 @@ def icon_for(prefab: str) -> str:
     return ""
 
 
+def parse_food_stats() -> dict[str, dict]:
+    stats: dict[str, dict] = {}
+    if not SCRIPTS_ZIP.exists():
+        return stats
+    with zipfile.ZipFile(SCRIPTS_ZIP) as z:
+        try:
+            text = z.read("scripts/screens/redux/scrapbookdata.lua").decode("utf-8", "replace")
+        except KeyError:
+            return stats
+    for line in text.splitlines():
+        m = re.match(r"\s{4}([A-Za-z0-9_]+)\s*=\s*\{(.*)\},\s*$", line)
+        if not m:
+            continue
+        pid, body = m.group(1), m.group(2)
+        fields: dict[str, str] = {}
+        for fm in re.finditer(r'(\w+)\s*=\s*("(?:[^"\\]|\\.)*"|-?\d+(?:\.\d+)?|true|false)', body):
+            fields[fm.group(1)] = fm.group(2)
+        if "hungervalue" not in fields:
+            continue
+
+        def fnum(key: str, default: float = 0.0) -> float:
+            try:
+                return float(fields.get(key, default))
+            except (TypeError, ValueError):
+                return default
+
+        stats[pid] = {
+            "hunger": fnum("hungervalue"),
+            "health": fnum("healthvalue"),
+            "sanity": fnum("sanityvalue"),
+            "perish": fnum("perishable") if "perishable" in fields else 0.0,
+        }
+    return stats
+
+
 def main() -> int:
     en_names = (json.loads(META.read_text(encoding="utf-8")).get("names") or {})
     ru_names = parse_po_names()
     raw_ing = json.loads(INGREDIENTS.read_text(encoding="utf-8"))
     examples = json.loads(EXAMPLES.read_text(encoding="utf-8")) if EXAMPLES.exists() else {}
+    food_stats = parse_food_stats()
 
     ingredients = {}
     for prefab, data in raw_ing.items():
@@ -283,6 +341,18 @@ def main() -> int:
         name_ru, name_en = names_for(prefab, en_names, ru_names)
         if prefab in NAME_OVERRIDES:
             name_ru = NAME_OVERRIDES[prefab]
+        stat_prefab = STAT_ALIASES.get(prefab, prefab)
+        st = STAT_MANUAL.get(prefab) or food_stats.get(stat_prefab)
+        stats = None
+        if st:
+            perish = st.get("perish") or 0
+            stats = {
+                "hunger": st.get("hunger", 0),
+                "health": st.get("health", 0),
+                "sanity": st.get("sanity", 0),
+                "perish": perish,
+                "perish_days": round(perish / 480.0, 2) if perish else 0,
+            }
         ingredients[prefab] = {
             "id": prefab,
             "name": name_ru,
@@ -290,6 +360,8 @@ def main() -> int:
             "tags": tags,
             "group": group_for(tags),
             "icon": icon_for(prefab),
+            "stats": stats,
+            "inedible": prefab in INEDIBLE,
         }
 
     recipes = []
