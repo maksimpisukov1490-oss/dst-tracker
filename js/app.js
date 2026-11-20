@@ -1944,7 +1944,8 @@
         if (cats.indexOf(state.craftCat) === -1) return;
       }
       if (q) {
-        var hay = ((r.name || '') + ' ' + (r.name_en || '') + ' ' + (r.id || '')).toLowerCase();
+        var hay = ((r.name || '') + ' ' + (r.name_en || '') + ' ' + (r.id || '') +
+          ' ' + (r.builder_text || '')).toLowerCase();
         if (hay.indexOf(q) === -1) return;
       }
       out.push(r);
@@ -1962,6 +1963,20 @@
     return '<span class="' + cls + ' craft-icon--empty">⚒</span>';
   }
 
+  var CHAR_BY_KEY = {};
+  CHARACTERS.forEach(function (c) { CHAR_BY_KEY[c.key] = c; });
+
+  function craftBuilderChip(r, cls, withLabel) {
+    var ch = CHAR_BY_KEY[r.builder_char];
+    if (ch) {
+      return '<span class="' + cls + '" title="Только для персонажа: ' + esc(ch.name) + '">' +
+        '<img class="' + cls + '-head" src="' + esc(ch.head) + '" alt="" loading="lazy">' +
+        '<span>' + (withLabel ? 'Только для ' : '') + esc(ch.name) + '</span></span>';
+    }
+    if (!r.builder_text) return '';
+    return '<span class="' + cls + '"><span>' + esc(r.builder_text) + '</span></span>';
+  }
+
   function craftCardHtml(r) {
     var meta = craftCatName(r.category);
     if (r.tech_text) meta += ' · ' + r.tech_text;
@@ -1973,7 +1988,7 @@
       '<span class="craft-card__body">' +
         '<span class="craft-card__name">' + esc(r.name) + '</span>' +
         '<span class="craft-card__meta">' + esc(meta) + '</span>' +
-        (r.builder_text ? '<span class="craft-card__builder">' + esc(r.builder_text) + '</span>' : '') +
+        craftBuilderChip(r, 'craft-card__builder') +
       '</span></button>';
   }
 
@@ -2213,7 +2228,7 @@
 
   function craftEntryHtml(r) {
     var cats = (r.categories && r.categories.length ? r.categories : [r.category]).map(craftCatName).join(' · ');
-    var meta = [cats, r.tech_text, r.builder_text].filter(Boolean).join(' · ');
+    var meta = [cats, r.tech_text].filter(Boolean).join(' · ');
     var back = state.craftStack.length
       ? '<button class="btn btn--ghost craft-back" type="button" data-craftback="1">← Назад</button>'
       : '';
@@ -2227,6 +2242,7 @@
           '<h2 id="entry-name">' + esc(r.name) + '</h2>' +
           '<p class="entry__latin">' + esc(r.name_en || '') + '</p>' +
           '<p class="craft-detail__meta">' + esc(meta) + '</p>' +
+          craftBuilderChip(r, 'craft-detail__builder', true) +
           '<button class="btn mark-btn' + (isCrafted(r.id) ? ' is-on' : '') +
             '" type="button" data-craftmark="1">' +
             (isCrafted(r.id) ? 'Получено ✓' : 'Отметить полученным') + '</button>' +
