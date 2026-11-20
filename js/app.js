@@ -795,8 +795,7 @@
     var locked = !killed && state.silhouettes;
     var img = art(b);
     var stamp = killed
-      ? '<div class="stamp stamp--small"><span>Побеждён</span><em>' +
-        (k.date ? esc(fmtDate(k.date)) : '') + '</em></div>'
+      ? '<div class="stamp stamp--small"><span>Побеждён</span></div>'
       : '';
     return '<button class="card' + (locked ? ' is-locked' : '') + '" data-slug="' + b.slug + '" ' +
       'aria-label="' + esc(b.name_ru) + (killed ? ' — побеждён' : ' — ещё не побеждён') + '">' +
@@ -1815,8 +1814,7 @@
         '<div class="entry__left">' +
           '<div class="portrait' + (locked ? ' is-locked' : '') + '">' +
             (img ? '<img src="' + img + '" alt="' + esc(b.name_ru) + '">' : '<div class="card__noart">?</div>') +
-            (killed ? '<div class="stamp portrait__stamp"><span>Побеждён</span><em>' +
-              (k.date ? esc(fmtDate(k.date)) : '') + '</em></div>' : '') +
+            (killed ? '<div class="stamp portrait__stamp"><span>Побеждён</span></div>' : '') +
           '</div>' +
         '</div>' +
         '<div class="entry__right">' +
