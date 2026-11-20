@@ -309,6 +309,15 @@ def main() -> int:
             if rid in NAME_OVERRIDES:
                 name_ru = NAME_OVERRIDES[rid]
             icon = icon_for(rid)
+            raw = examples.get(rid)
+            if raw and isinstance(raw[0], list) and raw[0] and isinstance(raw[0][0], list):
+                variations = raw
+            elif raw:
+                variations = [raw]
+            elif card:
+                variations = [card]
+            else:
+                variations = []
             ft = re.search(r"FOODTYPE\.([A-Z_]+)", block)
             perish = number(field(block, "perishtime"), None)
             cooktime = number(field(block, "cooktime"), 1.0)
@@ -327,7 +336,8 @@ def main() -> int:
                 "cooktime_sec": round(cooktime * 20),
                 "foodtype": FOODTYPE_LABELS.get(ft.group(1), ft.group(1)) if ft else "",
                 "icon": icon,
-                "example": examples.get(rid, card),
+                "examples": variations,
+                "example": variations[0] if variations else [],
                 "_test": js_test(expr),
             })
 

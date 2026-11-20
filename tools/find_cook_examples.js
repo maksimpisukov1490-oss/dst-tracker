@@ -1,15 +1,45 @@
-/* Подбирает полные примеры состава (4 ингредиента) для рецептов казана.
+/* Подбирает варианты состава (4 ингредиента) для рецептов казана.
    Запуск: node tools/find_cook_examples.js
-   Результат: tools/cook_examples.json */
+   Результат: tools/cook_examples.json
+   Формат: { recipe_id: [ [[ingredient, qty], ...], ... ] } */
 const fs = require('fs');
 const path = require('path');
-const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
 const ctx = { window: {} };
 new Function('window', fs.readFileSync(path.join(root, 'js/cooking.js'), 'utf8'))(ctx.window);
 const data = ctx.window.COOK_DATA;
 const ingredients = data.ingredients;
+const MAX_VARIATIONS = 6;
+const MAX_COLLECT = 400;
+
+const RARE = {
+  nightmarefuel: 20, refined_dust: 14, mandrake: 10, royal_jelly: 5,
+  tallbirdegg: 4, batnose: 8, wobster_sheller_land: 3, mole: 3,
+  durian: 1, cactus_flower: 1, rock_avocado_fruit_ripe: 2,
+  trunk_summer: 3, forgetmelots: 3, plantmeat: 1, fig: 1, barnacle: 1
+};
+const COMMON = new Set([
+  'meat','monstermeat','smallmeat','froglegs','drumstick','fish','eel','pondeel',
+  'fishmeat_small','fishmeat','berries','berries_juicy','carrot','corn','pumpkin',
+  'eggplant','potato','tomato','onion','garlic','red_cap','green_cap','blue_cap',
+  'moon_cap','honey','egg','twigs','ice','butter','goatmilk','kelp','dragonfruit',
+  'pomegranate','cave_banana','watermelon','acorn','butterflywings'
+]);
+
+function ingredientScore(id) {
+  if (id.indexOf('oceanfish') === 0) return 3;
+  if (/_cooked$|_dried$/.test(id)) return 1;
+  if (RARE[id]) return RARE[id];
+  if (COMMON.has(id)) return 0;
+  return 1;
+}
+
+function variationScore(pairs) {
+  let score = 0;
+  for (const pair of pairs) score += ingredientScore(pair[0]) * pair[1];
+  return score;
+}
 
 const extra = [
   'meat', 'monstermeat', 'smallmeat', 'froglegs', 'drumstick', 'fish', 'eel',
@@ -37,41 +67,42 @@ for (const r of data.recipes) {
   while ((m = re.exec(src))) candidates.add(m[1]);
 }
 const ids = [...candidates].filter((id) => ingredients[id]);
-const examples = {};
-const unique = {};
+const variations = {};
 const anyTop = {};
 const total = ids.length;
-console.error('candidates', total);
 let checked = 0;
 
-function addExample(recipe, picked, uniqueTop) {
-  if (examples[recipe.id]) return;
-  examples[recipe.id] = {};
-  picked.forEach((id) => { examples[recipe.id][id] = (examples[recipe.id][id] || 0) + 1; });
-  examples[recipe.id] = Object.keys(examples[recipe.id]).map((id) => [id, examples[recipe.id][id]]);
-  if (uniqueTop) unique[recipe.id] = true;
+function packs(picked) {
+  const counts = {};
+  picked.forEach((id) => { counts[id] = (counts[id] || 0) + 1; });
+  return Object.keys(counts).map((id) => [id, counts[id]]);
 }
 
+function add(recipe, picked) {
+  if (!variations[recipe.id]) variations[recipe.id] = [];
+  if (variations[recipe.id].length >= MAX_COLLECT) return;
+  const key = picked.slice().sort().join('|');
+  if (variations[recipe.id].some((v) => v.key === key)) return;
+  variations[recipe.id].push({ key: key, pairs: packs(picked) });
+}
+
+console.error('candidates', total);
 for (let a = 0; a < total; a++) {
-  const ia = ids[a], ta = ingredients[ia].tags;
-  const na = { [ia]: 1 };
+  const ia = ids[a];
   for (let b = a; b < total; b++) {
-    const ib = ids[b], tb = ingredients[ib].tags;
-    const names2 = Object.assign({}, na);
-    names2[ib] = (names2[ib] || 0) + 1;
+    const ib = ids[b];
     for (let c = b; c < total; c++) {
-      const ic = ids[c], tc = ingredients[ic].tags;
-      const names3 = Object.assign({}, names2);
-      names3[ic] = (names3[ic] || 0) + 1;
+      const ic = ids[c];
       for (let d = c; d < total; d++) {
         const id = ids[d];
-        const names = Object.assign({}, names3);
-        names[id] = (names[id] || 0) + 1;
+        const picked = [ia, ib, ic, id];
+        const names = {};
         const tags = {};
-        [ia, ib, ic, id].forEach((x) => {
+        for (const x of picked) {
+          names[x] = (names[x] || 0) + 1;
           const t = ingredients[x].tags;
           for (const k in t) tags[k] = (tags[k] || 0) + t[k];
-        });
+        }
         const cand = [];
         for (const r of data.recipes) {
           let ok = false;
@@ -82,31 +113,36 @@ for (let a = 0; a < total; a++) {
         let max = -Infinity;
         cand.forEach((r) => { if ((r.priority || 0) > max) max = r.priority || 0; });
         const top = cand.filter((r) => (r.priority || 0) === max);
-        const uniqueTop = top.length === 1;
-        top.forEach((r) => {
-          if (!examples[r.id]) {
-            if (uniqueTop) addExample(r, [ia, ib, ic, id], true);
-            else if (!anyTop[r.id]) anyTop[r.id] = [ia, ib, ic, id];
-          }
-        });
+        if (top.length === 1) {
+          add(top[0], picked);
+        } else if (!anyTop[top[0].id]) {
+          top.forEach((r) => { if (!anyTop[r.id]) anyTop[r.id] = picked.slice(); });
+        }
         checked++;
       }
     }
   }
-  if (a % 10 === 0) console.error('a', a, 'examples', Object.keys(examples).length);
+  if (a % 10 === 0) console.error('a', a, 'recipes with variations', Object.keys(variations).length);
 }
 
-// добить неоднозначными
+const out = {};
+let min = Infinity, max = 0, missing = [];
 for (const r of data.recipes) {
-  if (!examples[r.id] && anyTop[r.id]) {
-    examples[r.id] = {};
-    anyTop[r.id].forEach((id) => { examples[r.id][id] = (examples[r.id][id] || 0) + 1; });
-    examples[r.id] = Object.keys(examples[r.id]).map((id) => [id, examples[r.id][id]]);
+  if (variations[r.id] && variations[r.id].length) {
+    const list = variations[r.id].slice().sort((a, b) => variationScore(a.pairs) - variationScore(b.pairs));
+    out[r.id] = list.slice(0, MAX_VARIATIONS).map((v) => v.pairs);
+    min = Math.min(min, out[r.id].length);
+    max = Math.max(max, out[r.id].length);
+  } else if (anyTop[r.id]) {
+    out[r.id] = [packs(anyTop[r.id])];
+    min = Math.min(min, 1);
+    max = Math.max(max, 1);
+  } else {
+    missing.push(r.id);
   }
 }
 
-fs.writeFileSync(path.join(root, 'tools/cook_examples.json'), JSON.stringify(examples, null, 1));
-const covered = data.recipes.filter((r) => examples[r.id]).length;
-console.error('checked', checked, 'examples', covered, '/', data.recipes.length);
-const missing = data.recipes.filter((r) => !examples[r.id]).map((r) => r.id);
+fs.writeFileSync(path.join(root, 'tools/cook_examples.json'), JSON.stringify(out, null, 1));
+console.error('checked', checked, 'recipes', Object.keys(out).length, '/', data.recipes.length,
+  'variations min/max', min, max);
 if (missing.length) console.error('missing:', missing.join(', '));
