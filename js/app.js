@@ -26,6 +26,15 @@
   var MILESTONES = window.MILESTONES || { groups: [], items: [] };
   var SKILL_TREES = window.SKILL_TREES || {};
   var CRAFT = window.CRAFT_DATA || { categories: [], recipes: {}, by_product: {}, used_in: {} };
+  var CRAFT_BY_PRODUCT = {};
+  (function () {
+    Object.keys(CRAFT.recipes || {}).forEach(function (id) {
+      var r = CRAFT.recipes[id];
+      if (!r || !r.product) return;
+      if (!CRAFT_BY_PRODUCT[r.product]) CRAFT_BY_PRODUCT[r.product] = [];
+      CRAFT_BY_PRODUCT[r.product].push(id);
+    });
+  })();
   var CHAR_ALIASES = { wathgrithr: 'wigfrid', waxwell: 'maxwell' };
   var APP_VERSION = window.APP_VERSION || '1.0.0';
   var APP_BUILD = window.APP_BUILD || '';
@@ -99,7 +108,9 @@
     marks: {},
     variantPick: {},
     craftCat: 'all',
-    craftPage: 1
+    craftPage: 1,
+    craftStack: [],
+    craftId: null
   };
 
   function sanitizeKills(kills) {
@@ -1379,24 +1390,177 @@
       more + '</div>';
   }
 
-  function craftTreeItem(ing, depth, path) {
-    var rid = (CRAFT.tree_by_product && CRAFT.tree_by_product[ing.id]) || (CRAFT.recipes[ing.id] ? ing.id : null);
-    var r = rid ? CRAFT.recipes[rid] : null;
-    var icon = ing.icon || (r && r.icon) || '';
-    var label = esc(ing.name) + (ing.qty ? ' ×' + ing.qty : '');
-    var children = '';
-    if (r && depth < 5 && !path[rid]) {
-      path[rid] = true;
-      children = '<ul>' + (r.ingredients || []).map(function (x) {
-        return craftTreeItem(x, depth + 1, path);
-      }).join('') + '</ul>';
-      delete path[rid];
+  function craftRecipeIdFor(product) {
+    var ids = CRAFT_BY_PRODUCT[product] || [];
+    var best = null, bestScore = -1;
+    ids.forEach(function (id) {
+      var r = CRAFT.recipes[id];
+      if (!r) return;
+      if (r.category === 'character' || r.category === 'event' || r.category === 'other') return;
+      if (/transmute|shop|trade/i.test(id)) return;
+      var score = 0;
+      if (id === product) score += 100;
+      if (!r.builder && !r.builder_text) score += 20;
+      var n = (r.ingredients || []).filter(function (x) {
+        return x.kind !== 'character' && x.qty > 0;
+      }).length;
+      score += Math.min(n, 5);
+      if (score > bestScore) { bestScore = score; best = id; }
+    });
+    return best;
+  }
+
+  function craftRawAdd(raw, ing, qty) {
+    var cur = raw[ing.id];
+    if (!cur) {
+      raw[ing.id] = { id: ing.id, name: ing.name, icon: ing.icon || '', qty: qty };
+    } else {
+      cur.qty += qty;
+      if (ing.icon && !cur.icon) cur.icon = ing.icon;
     }
-    return '<li>' +
-      (icon ? '<img class="craft-tree__icon" src="' + esc(craftAsset(icon)) + '" alt="">' : '<span class="craft-tree__dot"></span>') +
-      '<span class="craft-tree__name">' + label + '</span>' +
-      (r ? '<span class="craft-tree__note">' + esc(r.tech_text) + '</span>' : '') +
-      children + '</li>';
+  }
+
+  function craftCharAdd(charRaw, ing, qty) {
+    var cur = charRaw[ing.id];
+    if (!cur) {
+      charRaw[ing.id] = { id: ing.id, name: ing.name, qty: qty };
+    } else {
+      cur.qty += qty;
+    }
+  }
+
+  function craftIngredientNode(ing, mult, depth, path, raw, charRaw) {
+    var qty = (parseInt(ing.qty, 10) || 0) * mult;
+    if (qty <= 0) return null;
+    if (ing.kind === 'character') {
+      craftCharAdd(charRaw, ing, qty);
+      return { kind: 'character', id: ing.id, name: ing.name, icon: '', qty: qty, children: [] };
+    }
+    var rid = craftRecipeIdFor(ing.id);
+    var r = rid ? CRAFT.recipes[rid] : null;
+    var node = {
+      kind: 'raw',
+      id: ing.id,
+      name: ing.name,
+      icon: ing.icon || (r && r.icon) || '',
+      qty: qty,
+      recipeId: rid || '',
+      tech: '',
+      children: []
+    };
+    if (r && depth < 8 && !path[ing.id]) {
+      path[ing.id] = true;
+      var kids = [];
+      (r.ingredients || []).forEach(function (x) {
+        var kid = craftIngredientNode(x, qty, depth + 1, path, raw, charRaw);
+        if (kid) kids.push(kid);
+      });
+      delete path[ing.id];
+      if (kids.length) {
+        node.kind = 'craft';
+        node.tech = r.tech_text || '';
+        node.children = kids;
+      } else {
+        craftRawAdd(raw, ing, qty);
+      }
+    } else {
+      craftRawAdd(raw, ing, qty);
+    }
+    return node;
+  }
+
+  function craftTreeData(r) {
+    var raw = {}, charRaw = {};
+    var path = {};
+    path[r.product] = true;
+    var root = {
+      kind: 'craft', id: r.product, name: r.name, icon: r.icon,
+      qty: 1, recipeId: r.id, tech: r.tech_text || '', children: []
+    };
+    (r.ingredients || []).forEach(function (ing) {
+      var kid = craftIngredientNode(ing, 1, 1, path, raw, charRaw);
+      if (kid) root.children.push(kid);
+    });
+    return { root: root, raw: raw, charRaw: charRaw };
+  }
+
+  function craftNodeHtml(node, isRoot) {
+    var hasChildren = !!(node.children && node.children.length);
+    var cls = 'craft-node craft-node--' + node.kind + (isRoot ? ' craft-node--root' : '');
+    var toggle = hasChildren
+      ? '<button class="craft-node__toggle" type="button" data-craftnode="1" ' +
+          'aria-expanded="true" aria-label="Свернуть">▾</button>'
+      : '<span class="craft-node__toggle craft-node__toggle--off" aria-hidden="true">•</span>';
+    var icon = node.icon
+      ? '<img src="' + esc(craftAsset(node.icon)) + '" alt="" loading="lazy">'
+      : '<span class="craft-node__dot"></span>';
+    var name = (node.kind === 'craft' && node.recipeId && !isRoot)
+      ? '<button class="craft-node__name" type="button" data-craft="' + esc(node.recipeId) +
+        '" title="Открыть рецепт">' + esc(node.name) + '</button>'
+      : '<span class="craft-node__name">' + esc(node.name) + '</span>';
+    var meta = [];
+    if (node.qty) meta.push('<b>×' + node.qty + '</b>');
+    if (node.kind === 'character') meta.push('ресурс персонажа');
+    else if (node.kind === 'raw') meta.push('сырьё');
+    else if (node.tech) meta.push(esc(node.tech));
+    return '<li class="' + cls + '">' +
+      '<div class="craft-node__row">' + toggle +
+        '<span class="craft-node__icon">' + icon + '</span>' +
+        '<span class="craft-node__body">' + name +
+          '<span class="craft-node__meta">' + meta.join(' · ') + '</span>' +
+        '</span>' +
+      '</div>' +
+      (hasChildren
+        ? '<ul class="craft-branch">' + node.children.map(function (c) {
+            return craftNodeHtml(c, false);
+          }).join('') + '</ul>'
+        : '') +
+      '</li>';
+  }
+
+  function craftRawHtml(raw, charRaw) {
+    var keys = Object.keys(raw);
+    var chars = Object.keys(charRaw);
+    var html = '';
+    if (keys.length) {
+      keys.sort(function (a, b) { return raw[a].name.localeCompare(raw[b].name, 'ru'); });
+      html += '<div class="craft-raw__list">' + keys.map(function (id) {
+        var x = raw[id];
+        return '<span class="craft-raw__item">' +
+          (x.icon ? '<img src="' + esc(craftAsset(x.icon)) + '" alt="" loading="lazy">'
+            : '<span class="craft-raw__dot"></span>') +
+          '<span>' + esc(x.name) + '</span><b>×' + x.qty + '</b></span>';
+      }).join('') + '</div>';
+    } else {
+      html += '<p class="craft-raw__empty">Всё делается из промежуточных предметов.</p>';
+    }
+    if (chars.length) {
+      chars.sort(function (a, b) { return charRaw[a].name.localeCompare(charRaw[b].name, 'ru'); });
+      html += '<h4 class="craft-raw__sub">Ресурсы персонажа</h4><div class="craft-raw__list">' +
+        chars.map(function (id) {
+          var x = charRaw[id];
+          return '<span class="craft-raw__item craft-raw__item--char">' +
+            '<span class="craft-raw__dot"></span><span>' + esc(x.name) +
+            '</span><b>×' + x.qty + '</b></span>';
+        }).join('') + '</div>';
+    }
+    return html;
+  }
+
+  function craftAlternativesHtml(r) {
+    var ids = (CRAFT_BY_PRODUCT[r.product] || []).filter(function (id) {
+      return id !== r.id && CRAFT.recipes[id];
+    });
+    if (!ids.length) return '';
+    return '<div class="craft-alts"><span class="craft-alts__label">Другие рецепты:</span>' +
+      ids.map(function (id) {
+        var a = CRAFT.recipes[id];
+        var meta = [craftCatName(a.category), a.tech_text].filter(Boolean).join(' · ');
+        return '<button class="craft-alt" type="button" data-craft="' + esc(id) + '">' +
+          craftIconHtml(a, 'craft-alt__img') +
+          '<span class="craft-alt__body"><b>' + esc(a.name) + '</b>' +
+          '<span>' + esc(meta) + '</span></span></button>';
+      }).join('') + '</div>';
   }
 
   function craftUsedHtml(r) {
@@ -1420,15 +1584,32 @@
     }).join('') + '</div>' + more;
   }
 
+  function craftTreeHtml(r) {
+    var built = craftTreeData(r);
+    return '<section class="craft-treepanel">' +
+      '<div class="craft-treepanel__head"><h3>Древо крафта</h3>' +
+        '<div class="craft-treepanel__controls">' +
+          '<button class="btn btn--ghost" type="button" data-crafttoggle="all">Развернуть всё</button>' +
+          '<button class="btn btn--ghost" type="button" data-crafttoggle="none">Свернуть всё</button>' +
+        '</div></div>' +
+      '<ul class="craft-tree">' + craftNodeHtml(built.root, true) + '</ul>' +
+      '<p class="craft-tree__hint">Клик по названию промежуточного предмета открывает его рецепт.</p>' +
+      '</section>' +
+      '<aside class="craft-detail__side">' +
+        '<section class="craft-raw"><h3>Сырьё</h3>' + craftRawHtml(built.raw, built.charRaw) + '</section>' +
+        '<section class="craft-detail__used"><h3>Используется в</h3>' + craftUsedHtml(r) + '</section>' +
+      '</aside>';
+  }
+
   function craftEntryHtml(r) {
     var cats = (r.categories && r.categories.length ? r.categories : [r.category]).map(craftCatName).join(' · ');
     var meta = [cats, r.tech_text, r.builder_text].filter(Boolean).join(' · ');
-    var path = {};
-    path[r.id] = true;
-    var tree = (r.ingredients || []).map(function (ing) {
-      return craftTreeItem(ing, 1, path);
-    }).join('');
+    var back = state.craftStack.length
+      ? '<button class="btn btn--ghost craft-back" type="button" data-craftback="1">← Назад</button>'
+      : '';
     return '<div class="craft-detail">' +
+      '<div class="craft-detail__bar">' + back +
+        '<span class="craft-detail__barhint">Древо крафта: количества пересчитаны на один предмет</span></div>' +
       '<div class="craft-detail__head">' +
         '<div class="craft-detail__icon">' + craftIconHtml(r, 'craft-detail__img') + '</div>' +
         '<div class="craft-detail__title">' +
@@ -1437,16 +1618,20 @@
           '<p class="craft-detail__meta">' + esc(meta) + '</p>' +
         '</div>' +
       '</div>' +
-      '<div class="craft-detail__cols">' +
-        '<section class="craft-detail__tree"><h3>Из чего делается</h3>' +
-          '<ul class="craft-tree">' + tree + '</ul></section>' +
-        '<section class="craft-detail__used"><h3>Используется в</h3>' + craftUsedHtml(r) + '</section>' +
-      '</div></div>';
+      craftAlternativesHtml(r) +
+      '<div class="craft-detail__cols">' + craftTreeHtml(r) + '</div>' +
+      '</div>';
   }
 
-  function openCraftEntry(id) {
+  function openCraftEntry(id, fromLink) {
     var r = CRAFT.recipes[id];
     if (!r) return;
+    if (fromLink) {
+      if (state.craftId && state.craftId !== id) state.craftStack.push(state.craftId);
+    } else {
+      state.craftStack = [];
+    }
+    state.craftId = id;
     var prev = document.getElementById('entry-prev');
     var next = document.getElementById('entry-next');
     if (prev) prev.hidden = true;
@@ -1454,6 +1639,15 @@
     els.entryBody.innerHTML = craftEntryHtml(r);
     els.entry.hidden = false;
     document.body.style.overflow = 'hidden';
+    els.entryBody.parentNode.scrollTop = 0;
+  }
+
+  function craftBack() {
+    if (!state.craftStack.length) return;
+    state.craftId = state.craftStack.pop();
+    var r = CRAFT.recipes[state.craftId];
+    if (!r) return;
+    els.entryBody.innerHTML = craftEntryHtml(r);
     els.entryBody.parentNode.scrollTop = 0;
   }
 
@@ -1466,6 +1660,8 @@
     for (var i = 0; i < BOSSES.length; i++) if (BOSSES[i].slug === slug) { b = BOSSES[i]; break; }
     if (!b) return;
     currentSlug = slug;
+    state.craftId = null;
+    state.craftStack = [];
     renderEntry(b);
     els.entry.hidden = false;
     document.body.style.overflow = 'hidden';
@@ -1475,6 +1671,8 @@
   function closeEntry() {
     els.entry.hidden = true;
     currentSlug = null;
+    state.craftId = null;
+    state.craftStack = [];
     document.body.style.overflow = '';
   }
 
@@ -1906,8 +2104,35 @@
 
   els.entry.addEventListener('click', function (e) {
     if (e.target.hasAttribute('data-close')) { closeEntry(); return; }
+    var craftBackBtn = e.target.closest('[data-craftback]');
+    if (craftBackBtn) { craftBack(); return; }
+    var craftToggleAll = e.target.closest('[data-crafttoggle]');
+    if (craftToggleAll) {
+      var collapse = craftToggleAll.dataset.crafttoggle === 'none';
+      [].forEach.call(els.entryBody.querySelectorAll('.craft-node'), function (node) {
+        if (node.classList.contains('craft-node--root')) return;
+        if (!node.querySelector('.craft-branch')) return;
+        node.classList.toggle('is-collapsed', collapse);
+        var btn = node.querySelector('[data-craftnode]');
+        if (btn) {
+          btn.setAttribute('aria-expanded', collapse ? 'false' : 'true');
+          btn.setAttribute('aria-label', collapse ? 'Развернуть' : 'Свернуть');
+        }
+      });
+      return;
+    }
+    var nodeToggle = e.target.closest('[data-craftnode]');
+    if (nodeToggle) {
+      var node = nodeToggle.closest('.craft-node');
+      if (node) {
+        var nowCollapsed = node.classList.toggle('is-collapsed');
+        nodeToggle.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
+        nodeToggle.setAttribute('aria-label', nowCollapsed ? 'Развернуть' : 'Свернуть');
+      }
+      return;
+    }
     var craft = e.target.closest('[data-craft]');
-    if (craft) { openCraftEntry(craft.dataset.craft); return; }
+    if (craft) { openCraftEntry(craft.dataset.craft, true); return; }
     var q = e.target.closest('.qhead');
     if (q) {
       var idx = q.dataset.q;
