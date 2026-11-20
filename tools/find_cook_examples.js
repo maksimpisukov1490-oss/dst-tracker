@@ -10,6 +10,7 @@ const ctx = { window: {} };
 new Function('window', fs.readFileSync(path.join(root, 'js/cooking.js'), 'utf8'))(ctx.window);
 const data = ctx.window.COOK_DATA;
 const ingredients = data.ingredients;
+const normalRecipes = data.recipes.filter((r) => !r.warly);
 const MAX_VARIATIONS = 6;
 const MAX_COLLECT = 400;
 
@@ -110,13 +111,26 @@ for (let a = 0; a < total; a++) {
           if (ok) cand.push(r);
         }
         if (!cand.length) continue;
+
+        const candNormal = cand.filter((r) => !r.warly);
+        if (candNormal.length) {
+          let maxN = -Infinity;
+          candNormal.forEach((r) => { if ((r.priority || 0) > maxN) maxN = r.priority || 0; });
+          const topN = candNormal.filter((r) => (r.priority || 0) === maxN);
+          if (topN.length === 1) {
+            add(topN[0], picked);
+          } else {
+            topN.forEach((r) => { if (!anyTop[r.id]) anyTop[r.id] = picked.slice(); });
+          }
+        }
+
         let max = -Infinity;
         cand.forEach((r) => { if ((r.priority || 0) > max) max = r.priority || 0; });
         const top = cand.filter((r) => (r.priority || 0) === max);
-        if (top.length === 1) {
+        if (top.length === 1 && top[0].warly) {
           add(top[0], picked);
-        } else if (!anyTop[top[0].id]) {
-          top.forEach((r) => { if (!anyTop[r.id]) anyTop[r.id] = picked.slice(); });
+        } else if (top.length > 1) {
+          top.forEach((r) => { if (r.warly && !anyTop[r.id]) anyTop[r.id] = picked.slice(); });
         }
         checked++;
       }

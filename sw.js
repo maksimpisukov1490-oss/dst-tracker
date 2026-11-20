@@ -1,6 +1,6 @@
 /* Кеш картинок и шрифтов: повторные заходы открываются быстрее.
    При обновлении ассетов поднимите версию CACHE. */
-const CACHE = 'dst-compendium-assets-v3';
+const CACHE = 'dst-compendium-assets-v4';
 
 self.addEventListener('install', () => self.skipWaiting());
 

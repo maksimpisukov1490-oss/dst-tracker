@@ -293,7 +293,8 @@ def main() -> int:
         }
 
     recipes = []
-    for fname in ("preparedfoods.lua", "preparednonfoods.lua"):
+    for fname in ("preparedfoods.lua", "preparednonfoods.lua", "preparedfoods_warly.lua"):
+        is_warly = fname == "preparedfoods_warly.lua"
         for rid, block in parse_blocks(script_text(fname)):
             tm = re.search(r"test\s*=\s*function\s*\([^)]*\)(.*?)\bend\s*,", block, re.S)
             if not tm:
@@ -335,6 +336,7 @@ def main() -> int:
                 "cooktime": cooktime,
                 "cooktime_sec": round(cooktime * 20),
                 "foodtype": FOODTYPE_LABELS.get(ft.group(1), ft.group(1)) if ft else "",
+                "warly": is_warly,
                 "icon": icon,
                 "examples": variations,
                 "example": variations[0] if variations else [],
