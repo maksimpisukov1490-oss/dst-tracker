@@ -148,6 +148,7 @@
     eaten: {},
     variantPick: {},
     craftCat: 'all',
+    craftSort: 'name',
     craftPage: 1,
     craftStack: [],
     craftId: null,
@@ -278,6 +279,8 @@
     state.crafted = sanitizeFlags(state.crafted, craftIds);
     state.eaten = sanitizeFlags(state.eaten, foodIds);
 
+    if (!CRAFT_SORTS[state.craftSort]) state.craftSort = 'name';
+
     state.builds = sanitizeBuilds(builds);
     var conds = (data && data.conds) || {};
     state.skillConds = {
@@ -317,6 +320,7 @@
         crafted: state.crafted,
         eaten: state.eaten,
         silhouettes: state.silhouettes,
+        craftSort: state.craftSort,
         tab: state.tab,
         filter: state.filter
       }));
@@ -1933,6 +1937,45 @@
     return id;
   }
 
+  var CRAFT_SORTS = {
+    name: 'По названию',
+    category: 'По категории',
+    character: 'По персонажу',
+    obtained: 'Сначала полученные',
+    unobtained: 'Сначала не полученные'
+  };
+
+  function craftBuilderName(r) {
+    var ch = CHAR_BY_KEY[r.builder_char];
+    return ch ? ch.name : (r.builder_text || '');
+  }
+
+  function craftSortList(list) {
+    var sort = state.craftSort || 'name';
+    var byName = function (a, b) { return (a.name || '').localeCompare(b.name || '', 'ru'); };
+    if (sort === 'category') {
+      return list.sort(function (a, b) {
+        return craftCatName(a.category).localeCompare(craftCatName(b.category), 'ru') || byName(a, b);
+      });
+    }
+    if (sort === 'character') {
+      return list.sort(function (a, b) {
+        var ca = !!a.builder_char, cb = !!b.builder_char;
+        if (ca !== cb) return ca ? -1 : 1;
+        return craftBuilderName(a).localeCompare(craftBuilderName(b), 'ru') || byName(a, b);
+      });
+    }
+    if (sort === 'obtained' || sort === 'unobtained') {
+      var firstObtained = sort === 'obtained';
+      return list.sort(function (a, b) {
+        var oa = isCrafted(a.id) ? (firstObtained ? 0 : 1) : (firstObtained ? 1 : 0);
+        var ob = isCrafted(b.id) ? (firstObtained ? 0 : 1) : (firstObtained ? 1 : 0);
+        return oa - ob || byName(a, b);
+      });
+    }
+    return list.sort(byName);
+  }
+
   function craftFiltered() {
     var q = state.query.trim().toLowerCase();
     var out = [];
@@ -1950,8 +1993,7 @@
       }
       out.push(r);
     });
-    out.sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'ru'); });
-    return out;
+    return craftSortList(out);
   }
 
   function craftAsset(src) {
@@ -2008,9 +2050,18 @@
       : '';
     els.grid.hidden = false;
     els.empty.hidden = true;
+    var sortOptions = Object.keys(CRAFT_SORTS).map(function (key) {
+      return '<option value="' + key + '"' + (state.craftSort === key ? ' selected' : '') + '>' +
+        CRAFT_SORTS[key] + '</option>';
+    }).join('');
     els.grid.innerHTML = '<div class="craft">' +
       '<div class="craft__cats">' + cats + '</div>' +
-      '<p class="craft__count">Найдено: ' + list.length + '</p>' +
+      '<div class="craft__sortbar">' +
+        '<p class="craft__count">Найдено: ' + list.length + '</p>' +
+        '<label class="craft__sortlabel">Сортировка' +
+          '<select class="craft__sort" data-craftsort="1">' + sortOptions + '</select>' +
+        '</label>' +
+      '</div>' +
       (cards ? '<div class="craft__grid">' + cards + '</div>' : '<p class="craft__empty">Ничего не найдено.</p>') +
       more + '</div>';
   }
@@ -2767,6 +2818,15 @@
     if (mark) { toggleMark(mark.dataset.mark); return; }
     var c = e.target.closest('[data-slug]');
     if (c) openEntry(c.dataset.slug);
+  });
+
+  els.grid.addEventListener('change', function (e) {
+    var sel = e.target.closest('[data-craftsort]');
+    if (!sel) return;
+    state.craftSort = CRAFT_SORTS[sel.value] ? sel.value : 'name';
+    state.craftPage = 1;
+    save();
+    renderGrid();
   });
 
   els.grid.addEventListener('input', function (e) {
