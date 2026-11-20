@@ -24,6 +24,7 @@ ASSETS = (
     "js/data.js",
     "js/skills.js",
     "js/craft.js",
+    "js/cooking.js",
     "js/version.js",
     "js/app.js",
 )

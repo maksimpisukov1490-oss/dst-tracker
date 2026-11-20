@@ -1,6 +1,6 @@
 # Компендиум выжившего
 
-![version](https://img.shields.io/badge/version-1.17.1-b8912f)
+![version](https://img.shields.io/badge/version-1.18.0-b8912f)
 
 Фанатский трекер прохождения **Don't Starve Together**: дневник охоты на боссов,
 оформленный как записи в компендиуме из самой игры.
@@ -25,7 +25,7 @@ python3 -m http.server 8000
 
 ## Версии
 
-Текущая версия — **1.17.1**, история изменений — в [CHANGELOG.md](CHANGELOG.md).
+Текущая версия — **1.18.0**, история изменений — в [CHANGELOG.md](CHANGELOG.md).
 
 Версия хранится в `VERSION`. Для сайта она собирается в `js/version.js`:
 
@@ -105,6 +105,11 @@ GitHub Actions**.
   количества пересчитаны на один предмет, ветки раскрываются и сворачиваются,
   итоговое сырьё собрано отдельным списком, промежуточные предметы открываются
   кликом (с кнопкой «Назад»), есть альтернативные рецепты и «используется в».
+- **Кухня**: вкладка «Кухня» — симулятор казана на **155 ингредиентов** и
+  **66 рецептов**. Собери 4 ингредиента: сайт покажет блюдо, шансы при
+  нескольких подходящих рецептах, голод, рассудок, здоровье, срок хранения,
+  время готовки и теги состава. В каталоге рецептов есть готовые примеры —
+  клик заполняет казан.
 - **Древо навыков**: во вкладке «Навыки» у каждого персонажа с древом **15 очков**.
   Нажми на доступный навык, чтобы изучить его за 1 очко; снятие и полный
   сброс возвращают очки. Сборки хранятся отдельно по персонажам, у каждого
@@ -166,14 +171,16 @@ js/app.js             логика трекера (дневник, прогре�
 js/data.js            данные — генерируется, руками не править
 js/skills.js          деревья навыков — генерируется, руками не править
 js/craft.js           книга рецептов — генерируется, руками не править
+js/cooking.js         рецепты казана — генерируется, руками не править
 js/version.js         версия для сайта — генерируется, руками не править
-assets/bosses/*.png   портреты боссов
+assets/bosses/*.webp  портреты боссов (700 px, WebP)
 assets/items/*.png    иконки предметов добычи
 assets/chars/*.png    головы персонажей для цитат и выбора навыков
 assets/quests/*.png   иконки квестов и заголовков всех пяти веток
 assets/skills/        иконки навыков по персонажам
 assets/skills/bg/     исходные фоны-маски деревьев (не выводятся на сайте)
 assets/craft-v2/      иконки предметов для книги рецептов
+assets/cook/          иконки ингредиентов и блюд казана (WebP)
 assets/fonts/         шрифты Neucha и Caveat (подключены локально)
 tools/texts_ru.py     русские описания, подсказки «как найти», добыча
 tools/names_ru.py     русские имена боссов
@@ -192,6 +199,12 @@ tools/recipes_raw.json сырые рецепты игры
 tools/recipe_meta.json имена и фильтры крафта
 tools/build_craft.py  сборка js/craft.js
 tools/extract_craft_icons.py иконки предметов из inventoryimages
+tools/extract_cooking.lua выгрузка ингредиентов казана из cooking.lua
+tools/build_cooking.py сборка js/cooking.js
+tools/extract_cook_icons.py иконки ингредиентов/блюд из inventoryimages
+tools/find_cook_examples.js подбор полных примеров состава
+tools/cook_ingredients.json теги ингредиентов казана
+tools/cook_examples.json примеры состава по рецептам
 tools/build_version.py сборка js/version.js из VERSION
 tools/install_mod.py  установка мода в папку mods игры
 dst-tracker-mod/      мод DST Compendium Sync (modinfo + Lua)
@@ -232,9 +245,29 @@ python3 tools/build_data.py
 `sanity`) — это выручает там, где с вики значение не пришло (например, у Крабьего
 короля нет прямой атаки, а у В.О.И.Н.Б.О.Т. урон зависит от боя).
 
-Чтобы добавить босса: положи его портрет в `assets/bosses/<slug>.png`,
+Чтобы добавить босса: положи его портрет в `assets/bosses/<slug>.webp` (700 px, WebP),
 добавь запись в `ORDER` в `tools/build_data.py`, тексты — в `tools/texts_ru.py`
 и запусти сборку.
+
+## Кухня
+
+Данные казана собираются из `scripts/cooking.lua` и `scripts/preparedfoods.lua`:
+
+```bash
+# 1. распаковать scripts.zip и выгрузить теги ингредиентов
+luajit tools/extract_cooking.lua /path/to/scripts
+# 2. собрать js/cooking.js и список иконок
+python3 tools/build_cooking.py
+# 3. вырезать иконки из inventoryimages
+python3 tools/extract_cook_icons.py
+# 4. подобрать полные примеры состава
+node tools/find_cook_examples.js
+# 5. пересобрать данные с иконками и примерами
+python3 tools/build_cooking.py
+```
+
+`tools/cook_examples.json` можно править вручную, если хочется заменить
+автоматически подобранный пример состава.
 
 ## Про оформление
 

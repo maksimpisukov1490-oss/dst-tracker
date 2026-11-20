@@ -1,7 +1,7 @@
 {
   "name": "Компендиум выжившего",
   "short_name": "Компендиум",
-  "description": "Фанатский трекер Don't Starve Together: боссы, прогресс, навыки и книга рецептов.",
+  "description": "Фанатский трекер Don't Starve Together: боссы, прогресс, навыки, крафт и кухня.",
   "lang": "ru",
   "dir": "ltr",
   "start_url": "../",

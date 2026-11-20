@@ -26,6 +26,7 @@
   var MILESTONES = window.MILESTONES || { groups: [], items: [] };
   var SKILL_TREES = window.SKILL_TREES || {};
   var CRAFT = window.CRAFT_DATA || { categories: [], recipes: {}, by_product: {}, used_in: {} };
+  var COOK = window.COOK_DATA || { groups: [], ingredients: {}, recipes: [] };
 
   // Карточки без иконок в книгу не пускаем.
   (function filterCraft() {
@@ -147,7 +148,11 @@
     craftCat: 'all',
     craftPage: 1,
     craftStack: [],
-    craftId: null
+    craftId: null,
+    kitchenSlots: [],
+    kitchenQuery: '',
+    kitchenCat: 'all',
+    kitchenRecipeQuery: ''
   };
 
   function sanitizeKills(kills) {
@@ -494,9 +499,19 @@
     var isProgress = state.tab === 'progress';
     var isSkills = state.tab === 'skills';
     var isCraft = state.tab === 'craft';
+    var isKitchen = state.tab === 'kitchen';
     if (els.toolbar) {
-      els.toolbar.hidden = isProgress || isSkills;
+      els.toolbar.hidden = isProgress || isSkills || isKitchen;
       els.toolbar.classList.toggle('is-craft', isCraft);
+    }
+    if (isKitchen) {
+      els.title.textContent = 'Кухня';
+      els.hint.textContent = 'Симулятор казана: 4 ингредиента — одно блюдо';
+      els.pCount.textContent = (COOK.recipes || []).length;
+      els.pPercent.textContent = '';
+      els.pFill.style.width = '0%';
+      els.pCaption.textContent = 'Рецептов в казане';
+      return;
     }
     if (isCraft) {
       var total = Object.keys(CRAFT.recipes || {}).length;
@@ -760,6 +775,12 @@
     var html = '';
     var tree = skillTreeForCurrent();
     var st = skillStats(tree);
+    var cookTotal = (COOK.recipes || []).length;
+    var cookTab = cookTotal
+      ? '<button class="tab' + (state.tab === 'kitchen' ? ' is-on' : '') + '" data-tab="kitchen">' +
+        '<span class="tab__icon" aria-hidden="true">🍲</span>Кухня' +
+        '<span class="tab__count">' + cookTotal + '</span></button>'
+      : '';
     CATS.forEach(function (c) {
       if (c.id === 'chronicle') {
         html += '<button class="tab' + (state.tab === 'skills' ? ' is-on' : '') + '" data-tab="skills">' +
@@ -795,6 +816,7 @@
         '<span class="tab__count">' + (c.id === 'chronicle'
           ? (p.total ? p.total + ' вид.' : '—')
           : p.done + '/' + p.total) + '</span></button>';
+      if (c.id === 'mini') html += cookTab;
     });
     var craftTotal = Object.keys(CRAFT.recipes || {}).length;
     if (craftTotal) {
@@ -857,6 +879,7 @@
     if (state.tab === 'skills') { renderSkills(); return; }
     if (state.tab === 'chronicle') { renderChronicle(); return; }
     if (state.tab === 'craft') { renderCraft(); return; }
+    if (state.tab === 'kitchen') { renderKitchen(); return; }
     var list = visible();
     els.grid.hidden = false;
     els.grid.innerHTML = list.map(cardHtml).join('');
@@ -1372,6 +1395,270 @@
   }
 
   /* ---------- книга рецептов ---------- */
+
+  /* ---------- кухня: симулятор казана ---------- */
+
+  var COOK_TAG_LABELS = {
+    meat: 'мясо', fish: 'рыба', monster: 'монстр', veggie: 'овощи',
+    fruit: 'фрукты', egg: 'яйца', dairy: 'молочное', sweetener: 'сладкое',
+    fat: 'жир', frozen: 'лёд', inedible: 'несъедобное',
+    decoration: 'украшение', seed: 'семена', magic: 'магия'
+  };
+  var COOK_GROUP_ORDER = {};
+
+  function cookIconHtml(item, cls) {
+    if (item && item.icon) {
+      return '<img class="' + cls + '" src="' + esc(item.icon) + '" alt="" loading="lazy">';
+    }
+    return '<span class="' + cls + ' cook-icon--empty" aria-hidden="true">🍲</span>';
+  }
+
+  function cookNum(v) {
+    if (v === null || v === undefined) return '—';
+    var n = Math.round(v * 10) / 10;
+    var s = String(n).replace('.', ',');
+    return n > 0 ? '+' + s : s;
+  }
+
+  function cookStats(r) {
+    return '<div class="cook-stats">' +
+      '<div class="cook-stat"><span>Голод</span><b>' + cookNum(r.hunger) + '</b></div>' +
+      '<div class="cook-stat"><span>Рассудок</span><b>' + cookNum(r.sanity) + '</b></div>' +
+      '<div class="cook-stat"><span>Здоровье</span><b>' + cookNum(r.health) + '</b></div>' +
+      '<div class="cook-stat"><span>Портится</span><b>' +
+        (r.perish_days ? r.perish_days + ' дн.' : 'не портится') + '</b></div>' +
+      '<div class="cook-stat"><span>Готовка</span><b>' +
+        (r.cooktime_sec || '—') + ' сек</b></div>' +
+      '</div>';
+  }
+
+  function cookTagSummary(tags) {
+    var parts = [];
+    Object.keys(tags || {}).forEach(function (k) {
+      if (tags[k]) parts.push((COOK_TAG_LABELS[k] || k) + ' ' + String(tags[k]).replace('.', ','));
+    });
+    if (!parts.length) return '';
+    return '<details class="cook-tags"><summary>Теги состава</summary><p>' +
+      esc(parts.join(' · ')) + '</p></details>';
+  }
+
+  function cookEvaluate(ids) {
+    var names = {}, tags = {};
+    (ids || []).forEach(function (id) {
+      names[id] = (names[id] || 0) + 1;
+      var ing = COOK.ingredients[id];
+      if (!ing || !ing.tags) return;
+      Object.keys(ing.tags).forEach(function (k) {
+        tags[k] = (tags[k] || 0) + ing.tags[k];
+      });
+    });
+    var cand = (COOK.recipes || []).filter(function (r) {
+      try { return r.test(names, tags); } catch (e) { return false; }
+    });
+    if (!cand.length) return { results: [], names: names, tags: tags };
+    var max = Math.max.apply(null, cand.map(function (r) { return r.priority || 0; }));
+    var top = cand.filter(function (r) { return (r.priority || 0) === max; });
+    var total = 0;
+    top.forEach(function (r) { total += (r.weight || 1); });
+    top.sort(function (a, b) {
+      return ((b.weight || 1) - (a.weight || 1)) ||
+        a.name.localeCompare(b.name, 'ru');
+    });
+    return {
+      results: top.map(function (r) {
+        return { recipe: r, chance: total ? (r.weight || 1) / total : 1 / top.length };
+      }),
+      names: names,
+      tags: tags
+    };
+  }
+
+  function cookSlotHtml(id, idx) {
+    if (!id) {
+      return '<div class="cook-slot is-empty"><span class="cook-slot__plus">+</span>' +
+        '<span class="cook-slot__empty">пусто</span></div>';
+    }
+    var ing = COOK.ingredients[id];
+    return '<button class="cook-slot" type="button" data-cookremove="' + idx +
+      '" title="Убрать ингредиент">' +
+      '<span class="cook-slot__x" aria-hidden="true">×</span>' +
+      '<span class="cook-slot__icon">' + cookIconHtml(ing, 'cook-slot__img') + '</span>' +
+      '<span class="cook-slot__name">' + esc(ing ? ing.name : id) + '</span></button>';
+  }
+
+  function cookAlternativesHtml(results) {
+    return '<div class="cook-alts"><span class="cook-alts__label">Возможные блюда:</span>' +
+      results.map(function (x) {
+        return '<span class="cook-alts__item">' +
+          cookIconHtml(x.recipe, 'cook-alts__img') +
+          esc(x.recipe.name) + ' <b>' + Math.round(x.chance * 100) + '%</b></span>';
+      }).join('') + '</div>';
+  }
+
+  function cookResultHtml() {
+    var n = (state.kitchenSlots || []).length;
+    if (n < 4) {
+      var left = 4 - n;
+      return '<div class="cook-result cook-result--empty">' +
+        '<span class="cook-result__big" aria-hidden="true">🍲</span>' +
+        '<p>Добавь ещё <b>' + left + '</b> ' +
+        (left === 1 ? 'ингредиент' : 'ингредиента') + '</p>' +
+        '<span class="cook-result__sub">Когда будет 4, покажу, что получится</span></div>';
+    }
+    var ev = cookEvaluate(state.kitchenSlots);
+    if (!ev.results.length) {
+      return '<div class="cook-result cook-result--empty"><p>Ничего не получилось.</p></div>';
+    }
+    var primary = ev.results[0], r = primary.recipe;
+    var multi = ev.results.length > 1;
+    return '<div class="cook-result">' +
+      '<div class="cook-result__head">' +
+        '<div class="cook-result__icon">' + cookIconHtml(r, 'cook-result__img') + '</div>' +
+        '<div class="cook-result__title"><h3>' + esc(r.name) + '</h3>' +
+          '<p>' + esc(r.foodtype || 'Блюдо') +
+            (multi ? ' · возможных результатов: ' + ev.results.length : '') + '</p></div>' +
+      '</div>' +
+      cookStats(r) +
+      (r.id === 'wetgoop'
+        ? '<p class="cook-result__hint">Комбинация не подошла ни под один рецепт — получится кашица.</p>'
+        : '') +
+      cookTagSummary(ev.tags) +
+      (multi ? cookAlternativesHtml(ev.results) : '') +
+      '</div>';
+  }
+
+  function cookIngredientButton(ing) {
+    return '<button class="cook-ing" type="button" data-cookadd="' + esc(ing.id) +
+      '" title="' + esc(ing.name) + '">' +
+      '<span class="cook-ing__icon">' + cookIconHtml(ing, 'cook-ing__img') + '</span>' +
+      '<span class="cook-ing__name">' + esc(ing.name) + '</span></button>';
+  }
+
+  function cookIngredientsHtml() {
+    var q = (state.kitchenQuery || '').trim().toLowerCase();
+    var list = Object.keys(COOK.ingredients || {}).map(function (id) {
+      return COOK.ingredients[id];
+    }).filter(function (ing) {
+      if (state.kitchenCat !== 'all' && ing.group !== state.kitchenCat) return false;
+      if (q) {
+        var hay = (ing.name + ' ' + ing.name_en + ' ' + ing.id).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+    list.sort(function (a, b) {
+      var ga = COOK_GROUP_ORDER[a.group];
+      var gb = COOK_GROUP_ORDER[b.group];
+      if (ga === undefined) ga = 99;
+      if (gb === undefined) gb = 99;
+      var ca = /_(cooked|dried)$/.test(a.id) ? 1 : 0;
+      var cb = /_(cooked|dried)$/.test(b.id) ? 1 : 0;
+      return ga - gb || ca - cb || a.name.localeCompare(b.name, 'ru');
+    });
+    if (!list.length) return '<p class="cook-empty">Ничего не найдено.</p>';
+    return '<div class="cook-ing-grid">' + list.map(cookIngredientButton).join('') + '</div>';
+  }
+
+  function cookRecipesHtml() {
+    var q = (state.kitchenRecipeQuery || '').trim().toLowerCase();
+    var list = (COOK.recipes || []).filter(function (r) {
+      if (!q) return true;
+      return (r.name + ' ' + r.name_en + ' ' + r.id).toLowerCase().indexOf(q) >= 0;
+    });
+    list.sort(function (a, b) { return a.name.localeCompare(b.name, 'ru'); });
+    if (!list.length) return '<p class="cook-empty">Ничего не найдено.</p>';
+    return '<div class="cook-recipes-grid">' + list.map(function (r) {
+      var can = r.example && r.example.length;
+      return '<button class="cook-recipe' + (can ? '' : ' is-noex') +
+        '" type="button" data-cookrecipe="' + esc(r.id) + '" title="' +
+        (can ? 'Собрать пример состава' : 'Пример состава не задан') + '">' +
+        '<span class="cook-recipe__icon">' + cookIconHtml(r, 'cook-recipe__img') + '</span>' +
+        '<span class="cook-recipe__body"><b>' + esc(r.name) + '</b>' +
+        '<span>' + cookNum(r.hunger) + ' голода · ' + cookNum(r.sanity) +
+        ' рассудка</span></span></button>';
+    }).join('') + '</div>';
+  }
+
+  function renderKitchen() {
+    var groups = COOK.groups || [];
+    var counts = {};
+    Object.keys(COOK.ingredients || {}).forEach(function (id) {
+      var g = COOK.ingredients[id].group;
+      counts[g] = (counts[g] || 0) + 1;
+    });
+    COOK_GROUP_ORDER = {};
+    groups.forEach(function (g, i) { COOK_GROUP_ORDER[g.id] = i; });
+
+    var cats = '<button class="chip' + (state.kitchenCat === 'all' ? ' is-on' : '') +
+      '" data-cookcat="all">Все <span>' + Object.keys(COOK.ingredients || {}).length +
+      '</span></button>' + groups.filter(function (g) { return counts[g.id]; }).map(function (g) {
+        return '<button class="chip' + (state.kitchenCat === g.id ? ' is-on' : '') +
+          '" data-cookcat="' + esc(g.id) + '">' + esc(g.name) +
+          ' <span>' + counts[g.id] + '</span></button>';
+      }).join('');
+
+    var slots = state.kitchenSlots || [];
+    var html = '<div class="kitchen">' +
+      '<section class="kitchen__sim">' +
+        '<div class="kitchen__pot">' +
+          '<div class="kitchen__cardhead"><h3>В казане</h3>' +
+            '<button class="btn btn--ghost" type="button" data-cookclear="1">Очистить</button></div>' +
+          '<div class="kitchen__slots">' +
+            [0, 1, 2, 3].map(function (i) { return cookSlotHtml(slots[i], i); }).join('') +
+          '</div>' +
+          '<p class="kitchen__hint">Клик по слоту убирает ингредиент.</p>' +
+        '</div>' +
+        '<div class="kitchen__result-wrap">' + cookResultHtml() + '</div>' +
+      '</section>' +
+      '<section class="kitchen__picker">' +
+        '<div class="kitchen__cardhead"><h3>Ингредиенты</h3>' +
+          '<input class="kitchen-search" type="search" id="kitchen-search" ' +
+            'placeholder="Найти ингредиент…" value="' + esc(state.kitchenQuery) +
+            '" autocomplete="off" aria-label="Поиск ингредиента"></div>' +
+        '<div class="kitchen__cats">' + cats + '</div>' +
+        cookIngredientsHtml() +
+      '</section>' +
+      '<section class="kitchen__recipes">' +
+        '<div class="kitchen__cardhead"><h3>Рецепты</h3>' +
+          '<input class="kitchen-search" type="search" id="kitchen-recipe-search" ' +
+            'placeholder="Найти блюдо…" value="' + esc(state.kitchenRecipeQuery) +
+            '" autocomplete="off" aria-label="Поиск рецепта"></div>' +
+        cookRecipesHtml() +
+      '</section>' +
+      '</div>';
+    els.grid.hidden = false;
+    els.empty.hidden = true;
+    els.grid.innerHTML = html;
+  }
+
+  function kitchenAdd(id) {
+    if (!COOK.ingredients[id]) return;
+    if ((state.kitchenSlots || []).length >= 4) {
+      toast('В казане уже 4 ингредиента');
+      return;
+    }
+    state.kitchenSlots.push(id);
+    renderKitchen();
+  }
+
+  function kitchenFill(id) {
+    var recipe = null;
+    (COOK.recipes || []).forEach(function (r) { if (r.id === id) recipe = r; });
+    if (!recipe || !recipe.example || !recipe.example.length) {
+      toast('Для этого рецепта нет готового примера — собери вручную');
+      return;
+    }
+    var slots = [];
+    recipe.example.forEach(function (pair) {
+      for (var i = 0; i < pair[1]; i++) slots.push(pair[0]);
+    });
+    state.kitchenSlots = slots.slice(0, 4);
+    renderKitchen();
+    var sim = document.querySelector('.kitchen__sim');
+    if (sim && sim.scrollIntoView) {
+      sim.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
 
   function craftCatName(id) {
     var cats = CRAFT.categories || [];
@@ -2064,6 +2351,28 @@
   });
 
   els.grid.addEventListener('click', function (e) {
+    var cookAdd = e.target.closest('[data-cookadd]');
+    if (cookAdd) { kitchenAdd(cookAdd.dataset.cookadd); return; }
+    var cookRemove = e.target.closest('[data-cookremove]');
+    if (cookRemove) {
+      state.kitchenSlots.splice(parseInt(cookRemove.dataset.cookremove, 10), 1);
+      renderKitchen();
+      return;
+    }
+    var cookClear = e.target.closest('[data-cookclear]');
+    if (cookClear) {
+      state.kitchenSlots = [];
+      renderKitchen();
+      return;
+    }
+    var cookCat = e.target.closest('[data-cookcat]');
+    if (cookCat) {
+      state.kitchenCat = cookCat.dataset.cookcat;
+      renderKitchen();
+      return;
+    }
+    var cookRecipe = e.target.closest('[data-cookrecipe]');
+    if (cookRecipe) { kitchenFill(cookRecipe.dataset.cookrecipe); return; }
     var skillChar = e.target.closest('[data-skillchar]');
     if (skillChar) {
       state.char = skillChar.dataset.skillchar;
@@ -2159,6 +2468,21 @@
     if (mark) { toggleMark(mark.dataset.mark); return; }
     var c = e.target.closest('[data-slug]');
     if (c) openEntry(c.dataset.slug);
+  });
+
+  els.grid.addEventListener('input', function (e) {
+    var id = e.target.id;
+    if (id !== 'kitchen-search' && id !== 'kitchen-recipe-search') return;
+    var value = e.target.value;
+    var pos = e.target.selectionStart;
+    if (id === 'kitchen-search') state.kitchenQuery = value;
+    else state.kitchenRecipeQuery = value;
+    renderKitchen();
+    var el = document.getElementById(id);
+    if (el) {
+      el.focus();
+      try { el.setSelectionRange(pos, pos); } catch (err) { /* ignore */ }
+    }
   });
 
   els.entry.addEventListener('click', function (e) {
