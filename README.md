@@ -1,16 +1,19 @@
 # Компендиум выжившего
 
-![version](https://img.shields.io/badge/version-1.15.2-b8912f)
+![version](https://img.shields.io/badge/version-1.16.0-b8912f)
 
 Фанатский трекер прохождения **Don't Starve Together**: дневник охоты на боссов,
 оформленный как записи в компендиуме из самой игры.
+
+**Живая версия:** https://maksimpisukov1490-oss.github.io/dst-tracker/
 
 Отмечаешь победу вручную — ставишь дату, число побед и заметки. Всё хранится
 локально в браузере, ничего никуда не отправляется.
 
 ## Как открыть
 
-Просто открой `index.html` двойным щелчком в браузере.
+Онлайн — по ссылке выше. Локально — просто открой `index.html` двойным
+щелчком в браузере.
 
 Если браузер капризничает с локальными файлами, подними локальный сервер:
 
@@ -22,7 +25,7 @@ python3 -m http.server 8000
 
 ## Версии
 
-Текущая версия — **1.15.2**, история изменений — в [CHANGELOG.md](CHANGELOG.md).
+Текущая версия — **1.16.0**, история изменений — в [CHANGELOG.md](CHANGELOG.md).
 
 Версия хранится в `VERSION`. Для сайта она собирается в `js/version.js`:
 
@@ -34,20 +37,22 @@ python3 tools/build_version.py 2026-11-16
 
 Номер версии виден в футере и попадает в экспортируемый JSON.
 
-## GitHub Pages
+## Публикация
 
-Сайт полностью статический, поэтому его можно опубликовать на GitHub Pages.
+Сайт полностью статический и уже опубликован на GitHub Pages:
 
-```bash
-gh auth login -h github.com
-gh repo create dst-tracker --public --source=. --remote=origin --push
-```
+- сайт: https://maksimpisukov1490-oss.github.io/dst-tracker/
+- исходники: https://github.com/maksimpisukov1490-oss/dst-tracker
+- ошибки и предложения: https://github.com/maksimpisukov1490-oss/dst-tracker/issues
 
-Затем в репозитории: **Settings → Pages → Source: GitHub Actions**. Workflow
-`.github/workflows/pages.yml` соберёт `_site` (только `index.html`, `css`, `js`,
-`assets`) и опубликует его.
+Workflow `.github/workflows/pages.yml` собирает `_site` из `index.html`,
+`404.html`, `robots.txt`, `sitemap.xml`, `css`, `js` и `assets`, затем
+публикует через GitHub Actions. Pages включён в **Settings → Pages → Source:
+GitHub Actions**.
 
-Ожидаемый адрес: `https://<user>.github.io/dst-tracker/`.
+Если появится свой домен, после привязки в **Settings → Pages → Custom domain**
+обновите адрес в `index.html` (`canonical`, `og:url`, `og:image`),
+`sitemap.xml` и `robots.txt`.
 
 ## Что умеет
 
@@ -105,6 +110,19 @@ gh repo create dst-tracker --public --source=. --remote=origin --push
   сброс возвращают очки. Сборки хранятся отдельно по персонажам, у каждого
   своя. Названия, описания и условия — по-русски.
 - Управление с клавиатуры: `Esc` — закрыть запись, `←` / `→` — листать записи.
+
+## Для всеобщего доступа
+
+- **Без регистрации и сервера.** Прогресс лежит в `localStorage` браузера,
+  данные никуда не отправляются.
+- **Телефон и планшет.** Раскладка адаптивная, карточки и древо крафта
+  складываются в одну колонку.
+- **Превью для соцсетей.** Прописаны Open Graph/Twitter-метаданные и обложка
+  `assets/og-cover.jpg`.
+- **Поисковики.** Есть `robots.txt`, `sitemap.xml`, `canonical` и JSON-LD.
+- **Иконки и PWA-манифест.** `assets/favicon.svg`, PNG-иконки и
+  `assets/site.webmanifest` — сайт можно добавить на домашний экран.
+- **Обратная связь.** Ошибки и предложения — через GitHub Issues.
 
 ## Где лежит прогресс
 

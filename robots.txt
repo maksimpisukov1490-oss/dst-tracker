@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://maksimpisukov1490-oss.github.io/dst-tracker/sitemap.xml

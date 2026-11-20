@@ -3,13 +3,44 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Компендиум выжившего — дневник охоты на боссов DST</title>
-<meta name="description" content="Трекер прохождения Don't Starve Together: отмечай убитых боссов, веди хронику побед и следи за прогрессом.">
+<title>Компендиум выжившего — трекер DST: боссы, прогресс, навыки, крафт</title>
+<meta name="description" content="Фанатский трекер Don't Starve Together: боссы и мини-боссы, прогресс, деревья навыков и книга рецептов с древом крафта. Прогресс хранится в браузере.">
+<meta name="robots" content="index,follow">
+<meta name="color-scheme" content="dark">
+<meta name="application-name" content="Компендиум выжившего">
+<meta name="apple-mobile-web-app-title" content="Компендиум">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#171310">
+<link rel="canonical" href="https://maksimpisukov1490-oss.github.io/dst-tracker/">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="assets/site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Компендиум выжившего">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="Компендиум выжившего — трекер DST">
+<meta property="og:description" content="Боссы, прогресс, навыки и книга рецептов Don't Starve Together. Фанатский компендиум в браузере.">
+<meta property="og:url" content="https://maksimpisukov1490-oss.github.io/dst-tracker/">
+<meta property="og:image" content="https://maksimpisukov1490-oss.github.io/dst-tracker/assets/og-cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Компендиум выжившего — карточки боссов DST">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Компендиум выжившего — трекер DST">
+<meta name="twitter:description" content="Боссы, прогресс, навыки и книга рецептов Don't Starve Together.">
+<meta name="twitter:image" content="https://maksimpisukov1490-oss.github.io/dst-tracker/assets/og-cover.jpg">
 <link rel="stylesheet" href="assets/fonts/fonts.css">
-<link rel="stylesheet" href="css/style.css?v=1.15.2">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#128220;</text></svg>">
+<link rel="stylesheet" href="css/style.css?v=1.16.0">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Компендиум выжившего","url":"https://maksimpisukov1490-oss.github.io/dst-tracker/","description":"Фанатский трекер Don't Starve Together: боссы, прогресс, навыки и книга рецептов.","inLanguage":"ru","applicationCategory":"GameApplication","operatingSystem":"Any","isAccessibleForFree":true,"image":"https://maksimpisukov1490-oss.github.io/dst-tracker/assets/og-cover.jpg","sameAs":["https://github.com/maksimpisukov1490-oss/dst-tracker"],"offers":{"@type":"Offer","price":"0","priceCurrency":"RUB"}}
+</script>
 </head>
 <body>
+
+<a class="skip-link" href="#main">Перейти к содержимому</a>
+<noscript><div class="noscript">Для работы компендиума нужен JavaScript. Включите его в браузере.</div></noscript>
 
 <div class="fog" aria-hidden="true"></div>
 <div class="grain" aria-hidden="true"></div>
@@ -40,7 +71,7 @@
     <!-- кнопки-вкладки рисует app.js -->
   </nav>
 
-  <main class="pages">
+  <main class="pages" id="main" tabindex="-1">
 
     <section class="leaf leaf--head">
       <div class="leaf__ornament" aria-hidden="true"></div>
@@ -63,7 +94,7 @@
       <div class="toolbar" id="toolbar">
         <label class="search">
           <span class="search__icon" aria-hidden="true">&#9906;</span>
-          <input type="search" id="search" placeholder="Найти чудовище&hellip;" autocomplete="off">
+          <input type="search" id="search" placeholder="Найти чудовище&hellip;" autocomplete="off" aria-label="Поиск по компендиуму">
         </label>
         <div class="chips" id="filters">
           <button class="chip is-on" data-filter="all">Все</button>
@@ -78,7 +109,7 @@
       </div>
     </section>
 
-    <section id="grid" class="grid" aria-live="polite"></section>
+    <section id="grid" class="grid" aria-live="polite" aria-label="Записи компендиума"></section>
 
     <section id="empty" class="empty" hidden>
       <div class="empty__mark">?</div>
@@ -90,7 +121,14 @@
 
 <footer class="colophon">
   <p>Прогресс хранится только в этом браузере. Не забудь <button class="link" id="btn-export2">выгрузить</button> его на всякий случай.</p>
-  <p class="colophon__fan">Фанатский проект. Don't Starve Together &copy; Klei Entertainment. &middot; <span class="colophon__version" id="app-version">v1.15.2</span></p>
+  <p class="colophon__links">
+    <a href="https://github.com/maksimpisukov1490-oss/dst-tracker" target="_blank" rel="noopener">Исходники</a>
+    <span aria-hidden="true">·</span>
+    <a href="https://github.com/maksimpisukov1490-oss/dst-tracker/issues" target="_blank" rel="noopener">Сообщить об ошибке</a>
+    <span aria-hidden="true">·</span>
+    <a href="https://github.com/maksimpisukov1490-oss/dst-tracker/blob/main/NOTICE.md" target="_blank" rel="noopener">Права</a>
+  </p>
+  <p class="colophon__fan">Фанатский проект. Don't Starve Together &copy; Klei Entertainment. &middot; <a class="colophon__version" id="app-version" href="https://github.com/maksimpisukov1490-oss/dst-tracker/releases" target="_blank" rel="noopener">v1.15.2</a></p>
 </footer>
 
 <!-- Страница записи -->
@@ -105,12 +143,12 @@
   </article>
 </div>
 
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="js/data.js?v=1.15.2"></script>
-<script src="js/craft.js?v=1.15.2"></script>
-<script src="js/skills.js?v=1.15.2"></script>
-<script src="js/version.js?v=1.15.2"></script>
-<script src="js/app.js?v=1.15.2"></script>
+<script src="js/data.js?v=1.16.0"></script>
+<script src="js/craft.js?v=1.16.0"></script>
+<script src="js/skills.js?v=1.16.0"></script>
+<script src="js/version.js?v=1.16.0"></script>
+<script src="js/app.js?v=1.16.0"></script>
 </body>
 </html>

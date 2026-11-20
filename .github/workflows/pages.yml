@@ -27,7 +27,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p _site
-          cp -r index.html css js assets _site/
+          cp -r index.html 404.html robots.txt sitemap.xml css js assets _site/
           touch _site/.nojekyll
 
       - name: Setup Pages
