@@ -26,6 +26,43 @@
   var MILESTONES = window.MILESTONES || { groups: [], items: [] };
   var SKILL_TREES = window.SKILL_TREES || {};
   var CRAFT = window.CRAFT_DATA || { categories: [], recipes: {}, by_product: {}, used_in: {} };
+
+  // Карточки без иконок в книгу не пускаем.
+  (function filterCraft() {
+    var source = CRAFT.recipes || {};
+    var kept = {};
+    Object.keys(source).forEach(function (id) {
+      var r = source[id];
+      if (r && r.icon) kept[id] = r;
+    });
+    CRAFT.recipes = kept;
+
+    var counts = {};
+    Object.keys(kept).forEach(function (id) {
+      var cats = kept[id].categories || [kept[id].category];
+      cats.forEach(function (c) { counts[c] = (counts[c] || 0) + 1; });
+    });
+    var cats = [];
+    (CRAFT.categories || []).forEach(function (c) {
+      if (c.id === 'all') {
+        cats.push({ id: 'all', name: c.name, count: Object.keys(kept).length });
+      } else if (counts[c.id]) {
+        cats.push({ id: c.id, name: c.name, count: counts[c.id] });
+      }
+    });
+    CRAFT.categories = cats;
+
+    var usedIn = {};
+    Object.keys(kept).forEach(function (id) {
+      (kept[id].ingredients || []).forEach(function (ing) {
+        if (ing.kind !== 'item') return;
+        if (!usedIn[ing.id]) usedIn[ing.id] = [];
+        if (usedIn[ing.id].indexOf(id) < 0) usedIn[ing.id].push(id);
+      });
+    });
+    CRAFT.used_in = usedIn;
+  })();
+
   var CRAFT_BY_PRODUCT = {};
   (function () {
     Object.keys(CRAFT.recipes || {}).forEach(function (id) {
