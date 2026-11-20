@@ -343,7 +343,7 @@
   }
 
   function art(b) {
-    return b.art ? 'assets/bosses/' + b.slug + '.png' : '';
+    return b.art ? 'assets/bosses/' + b.slug + '.webp' : '';
   }
 
   var toastTimer = null;
@@ -1400,9 +1400,7 @@
   }
 
   function craftAsset(src) {
-    if (!src) return '';
-    if (location.protocol === 'file:') return src;
-    return src + (src.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(APP_VERSION);
+    return src || '';
   }
 
   function craftIconHtml(r, cls) {
@@ -1424,7 +1422,7 @@
 
   function renderCraft() {
     var list = craftFiltered();
-    var per = 60;
+    var per = window.innerWidth <= 620 ? 36 : 60;
     var page = Math.max(1, parseInt(state.craftPage, 10) || 1);
     var shown = list.slice(0, page * per);
     var cats = (CRAFT.categories || []).map(function (c) {

@@ -253,8 +253,8 @@ def categories_for(name: str, filters: dict) -> list[str]:
 
 
 def icon_path(prefab: str) -> str:
-    for base in (ICON_DIR, ITEM_DIR):
-        path = base / (prefab + ".png")
+    for base, ext in ((ICON_DIR, ".webp"), (ITEM_DIR, ".png")):
+        path = base / (prefab + ext)
         if path.exists():
             return str(path.relative_to(ROOT)).replace("\\", "/")
     return ""

@@ -3,7 +3,7 @@
 """Вырезает иконки предметов из inventoryimages*.xml для книги рецептов.
 
 KTEX -> DDS -> PNG, затем кроп элемента по UV из XML и сохранение
-в assets/craft/<prefab>.png (64x64).
+в assets/craft-v2/<prefab>.webp (64x64).
 """
 from __future__ import annotations
 
@@ -99,11 +99,11 @@ def main() -> int:
                 crop.thumbnail((64, 64), Image.LANCZOS)
                 canvas = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
                 canvas.paste(crop, ((64 - crop.width) // 2, (64 - crop.height) // 2), crop)
-                canvas.save(OUT / f"{prefab}.png")
+                canvas.save(OUT / f"{prefab}.webp", "WEBP", quality=85, method=6)
                 made += 1
 
     for prefab in sorted(wanted):
-        if not (OUT / f"{prefab}.png").exists():
+        if not (OUT / f"{prefab}.webp").exists():
             missing.append(prefab)
 
     print(f"icons: {made}, missing: {len(missing)}")

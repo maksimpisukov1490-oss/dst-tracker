@@ -1,6 +1,6 @@
 # Компендиум выжившего
 
-![version](https://img.shields.io/badge/version-1.16.2-b8912f)
+![version](https://img.shields.io/badge/version-1.17.0-b8912f)
 
 Фанатский трекер прохождения **Don't Starve Together**: дневник охоты на боссов,
 оформленный как записи в компендиуме из самой игры.
@@ -25,7 +25,7 @@ python3 -m http.server 8000
 
 ## Версии
 
-Текущая версия — **1.16.2**, история изменений — в [CHANGELOG.md](CHANGELOG.md).
+Текущая версия — **1.17.0**, история изменений — в [CHANGELOG.md](CHANGELOG.md).
 
 Версия хранится в `VERSION`. Для сайта она собирается в `js/version.js`:
 
@@ -122,6 +122,8 @@ GitHub Actions**.
 - **Поисковики.** Есть `robots.txt`, `sitemap.xml`, `canonical` и JSON-LD.
 - **Иконки и PWA-манифест.** `assets/favicon.svg`, PNG-иконки и
   `assets/site.webmanifest` — сайт можно добавить на домашний экран.
+- **Лёгкая загрузка.** Портреты боссов и иконки крафта переведены в WebP,
+  лишние эффекты на телефонах отключены.
 - **Обратная связь.** Ошибки и предложения — через GitHub Issues.
 
 ## Где лежит прогресс

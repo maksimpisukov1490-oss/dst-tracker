@@ -1260,3 +1260,26 @@ body{
 }
 .colophon__version:hover{ color:#f0e2c0; border-bottom-color:#f0e2c0; }
 :focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
+
+/* --- мобильная производительность -------------------------- */
+@media (max-width: 760px){
+  .grain{ display:none; }
+  .entry__backdrop{ backdrop-filter:none; -webkit-backdrop-filter:none; }
+  .card__art img{ filter:none; }
+  .card{
+    background-image:linear-gradient(160deg,#f1e4c8,#d9c49b);
+    background-blend-mode:normal;
+  }
+  .stamp{ mix-blend-mode:normal; }
+}
+@media (hover: none){
+  .card:hover{ transform:none; }
+  .craft-card:hover{ transform:none; }
+  .pick:hover{ transform:none; }
+}
+@media (max-width: 760px){
+  .skilltree__lines line.is-on,
+  .sknode.is-on .sknode__ring,
+  .sknode.is-selected .sknode__ring,
+  .skilltree__face{ filter:none; }
+}
