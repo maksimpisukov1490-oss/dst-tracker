@@ -91,6 +91,8 @@ def pick_quotes(rows: list[tuple[str, str, str]], target: str | None = None) -> 
             priority += 0.5
         if key not in chosen or priority < chosen[key][0]:
             chosen[key] = (priority, text)
+    if chosen:
+        chosen.setdefault("wes", (0, "..."))
     out = []
     def order_key(k):
         return (1 if target and k == target else 0, ORDER_INDEX.get(k, 99))

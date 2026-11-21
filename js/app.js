@@ -1763,6 +1763,7 @@
             (r.warly ? ' · Варли' : '') + '</p></div>' +
       '</div>' +
       cookStats(r) +
+      cookFaveLong(r) +
       '<button class="btn mark-btn' + (isEaten(r.id) ? ' is-on' : '') +
         '" type="button" data-cookeaten="1">' +
         (isEaten(r.id) ? 'Съедено ✓' : 'Отметить съеденным') + '</button>' +
@@ -1825,6 +1826,7 @@
             (multi ? ' · возможных результатов: ' + ev.results.length : '') + '</p></div>' +
       '</div>' +
       cookStats(r) +
+      cookFaveLong(r) +
       (r.warly ? '<p class="cook-result__hint">Только портативный казан Варли.</p>' : '') +
       (r.id === 'wetgoop'
         ? '<p class="cook-result__hint">Комбинация не подошла ни под один рецепт — получится кашица.</p>'
@@ -1868,6 +1870,25 @@
     return '<div class="cook-ing-grid">' + list.map(cookIngredientButton).join('') + '</div>';
   }
 
+  function cookFaveShort(r) {
+    var fav = r.favorites || [];
+    if (!fav.length) return '';
+    return '<span class="cook-recipe__fave">♥ Любимое: ' + fav.map(function (f) {
+      return '<img src="' + esc(f.head) + '" alt=""><b>' + esc(f.name) + '</b>';
+    }).join(', ') + '</span>';
+  }
+
+  function cookFaveLong(r) {
+    var fav = r.favorites || [];
+    if (!fav.length) return '';
+    return fav.map(function (f) {
+      return '<p class="cook-fave">' +
+        '<img src="' + esc(f.head) + '" alt="">' +
+        '<span>♥ Любимое блюдо: <b>' + esc(f.name) + '</b></span>' +
+        '<span class="cook-fave__bonus">+15 рассудка</span></p>';
+    }).join('');
+  }
+
   function cookRecipesHtml() {
     var q = (state.kitchenRecipeQuery || '').trim().toLowerCase();
     var list = (COOK.recipes || []).filter(function (r) {
@@ -1888,7 +1909,7 @@
         '<span class="cook-recipe__body"><b>' + esc(r.name) +
           (r.warly ? ' <span class="cook-recipe__warly">Варли</span>' : '') + '</b>' +
         '<span>' + cookNum(r.hunger) + ' голода · ' + cookVariants(r.examples.length) +
-        '</span></span></button>';
+        '</span>' + cookFaveShort(r) + '</span></button>';
     }).join('') + '</div>';
   }
 
@@ -2432,6 +2453,9 @@
 
   function quotesBlock(src, title) {
     var q = (Array.isArray(src) ? src : ((src && src.quotes) || [])).map(quoteItem);
+    if (q.length && !q.some(function (it) { return it.key === 'wes'; })) {
+      q.push({ key: 'wes', name: 'Уэс', head: 'assets/chars/wes.png', text: '...' });
+    }
     if (!q.length) return '';
     var heads = q.map(function (it, i) {
       var face = it.head

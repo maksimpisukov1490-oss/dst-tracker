@@ -293,6 +293,51 @@ def icon_for(prefab: str) -> str:
     return ""
 
 
+CHAR_FAVORITE_FILES = {
+    "wilson": ("Уилсон", "wilson"),
+    "willow": ("Уиллоу", "willow"),
+    "wolfgang": ("Вольфганг", "wolfgang"),
+    "wendy": ("Венди", "wendy"),
+    "wx78": ("WX-78", "wx78"),
+    "wickerbottom": ("Уикерботтом", "wickerbottom"),
+    "woodie": ("Вуди", "woodie"),
+    "wes": ("Уэс", "wes"),
+    "waxwell": ("Максвелл", "maxwell"),
+    "wathgrithr": ("Вигфрид", "wigfrid"),
+    "webber": ("Веббер", "webber"),
+    "warly": ("Уорли", "warly"),
+    "wortox": ("Вортокс", "wortox"),
+    "wormwood": ("Вормвуд", "wormwood"),
+    "winona": ("Уинона", "winona"),
+    "wurt": ("Вурт", "wurt"),
+    "walter": ("Уолтер", "walter"),
+    "wanda": ("Ванда", "wanda"),
+}
+
+
+def parse_favorites() -> dict[str, list[dict]]:
+    """Любимые блюда: foodaffinity с AFFINITY_15_* в prefabs/<герой>.lua."""
+    favorites: dict[str, list[dict]] = {}
+    if not SCRIPTS_ZIP.exists():
+        return favorites
+    with zipfile.ZipFile(SCRIPTS_ZIP) as z:
+        for prefab, (name, key) in CHAR_FAVORITE_FILES.items():
+            path = "scripts/prefabs/%s.lua" % prefab
+            try:
+                text = z.read(path).decode("utf-8", "replace")
+            except KeyError:
+                continue
+            for m in re.finditer(
+                    r'AddPrefabAffinity\s*\(\s*"([^"]+)"\s*,\s*[^)]*AFFINITY_15[^)]*\)', text):
+                dish = m.group(1)
+                favorites.setdefault(dish, []).append({
+                    "key": key,
+                    "name": name,
+                    "head": "assets/chars/%s.png" % key,
+                })
+    return favorites
+
+
 def parse_food_stats() -> dict[str, dict]:
     stats: dict[str, dict] = {}
     if not SCRIPTS_ZIP.exists():
@@ -334,6 +379,7 @@ def main() -> int:
     raw_ing = json.loads(INGREDIENTS.read_text(encoding="utf-8"))
     examples = json.loads(EXAMPLES.read_text(encoding="utf-8")) if EXAMPLES.exists() else {}
     food_stats = parse_food_stats()
+    favorites = parse_favorites()
 
     ingredients = {}
     for prefab, data in raw_ing.items():
@@ -409,6 +455,7 @@ def main() -> int:
                 "cooktime_sec": round(cooktime * 20),
                 "foodtype": FOODTYPE_LABELS.get(ft.group(1), ft.group(1)) if ft else "",
                 "warly": is_warly,
+                "favorites": favorites.get(rid, []),
                 "icon": icon,
                 "examples": variations,
                 "example": variations[0] if variations else [],
