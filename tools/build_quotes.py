@@ -41,8 +41,8 @@ ORDER = [
     "wortox", "wormwood", "winona", "wurt", "walter", "wanda",
 ]
 ORDER_INDEX = {k: i for i, k in enumerate(ORDER)}
-MAX_CRAFT_QUOTES = 6
-MAX_CHAR_QUOTES = 8
+MAX_CRAFT_QUOTES = 99
+MAX_CHAR_QUOTES = 99
 
 
 def parse_po(text: str) -> dict[str, str]:
@@ -79,7 +79,7 @@ def pick_quotes(rows: list[tuple[str, str, str]], target: str | None = None) -> 
     """rows: (speaker, suffix, text). Возвращает до MAX цитат по одному голосу."""
     chosen: dict[str, tuple[int, str]] = {}
     for speaker, suffix, text in rows:
-        key = SPEAKERS.get(speaker)
+        key = "wilson" if speaker == "GENERIC" else SPEAKERS.get(speaker)
         if not key or not text:
             continue
         if target and target in NAMES:
@@ -87,21 +87,15 @@ def pick_quotes(rows: list[tuple[str, str, str]], target: str | None = None) -> 
         if "%" in text:
             continue
         priority = 0 if suffix == "" else (1 if suffix == ".GENERIC" else 2 + len(suffix))
+        if speaker == "GENERIC":
+            priority += 0.5
         if key not in chosen or priority < chosen[key][0]:
             chosen[key] = (priority, text)
     out = []
-    seen = set()
-    for key in sorted(chosen, key=lambda k: ORDER_INDEX.get(k, 99)):
-        text = chosen[key][1]
-        if text in seen:
-            continue
-        seen.add(text)
-        out.append({
-            "key": key,
-            "name": NAMES.get(key, key),
-            "head": "assets/chars/%s.png" % key,
-            "text": text,
-        })
+    def order_key(k):
+        return (1 if target and k == target else 0, ORDER_INDEX.get(k, 99))
+    for key in sorted(chosen, key=order_key):
+        out.append([key, chosen[key][1]])
         if len(out) >= (MAX_CHAR_QUOTES if target else MAX_CRAFT_QUOTES):
             break
     return out
@@ -121,7 +115,7 @@ def main() -> int:
         if not m:
             continue
         speaker, prefab, suffix = m.group(1), m.group(2).lower(), m.group(3)
-        if speaker == "GENERIC" or speaker not in SPEAKERS:
+        if speaker != "GENERIC" and speaker not in SPEAKERS:
             continue
         by_prefab.setdefault(prefab, []).append((speaker, suffix, value))
 
@@ -138,8 +132,10 @@ def main() -> int:
         for ctx, value in entries.items():
             m = re.match(r"STRINGS\.CHARACTERS\.([A-Z0-9]+)\.DESCRIBE\." +
                          target.upper() + r"\.GENERIC$", ctx)
-            if m and m.group(1) != "GENERIC" and m.group(1) in SPEAKERS:
-                rows.append((m.group(1), "", value))
+            if m:
+                spk = m.group(1)
+                if spk == "GENERIC" or spk in SPEAKERS:
+                    rows.append((spk, "", value))
         quotes = pick_quotes(rows, target=key)
         if quotes:
             chars[key] = quotes

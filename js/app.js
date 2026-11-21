@@ -2419,8 +2419,19 @@
       '</div>';
   }
 
+  function quoteItem(it) {
+    if (!Array.isArray(it)) return it;
+    var ch = CHAR_BY_KEY[it[0]] || {};
+    return {
+      key: it[0],
+      name: ch.name || it[0],
+      head: ch.head || '',
+      text: it[1]
+    };
+  }
+
   function quotesBlock(src, title) {
-    var q = Array.isArray(src) ? src : ((src && src.quotes) || []);
+    var q = (Array.isArray(src) ? src : ((src && src.quotes) || [])).map(quoteItem);
     if (!q.length) return '';
     var heads = q.map(function (it, i) {
       var face = it.head
