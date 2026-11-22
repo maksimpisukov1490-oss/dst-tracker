@@ -21,6 +21,7 @@ INDEX = ROOT / "index.html"
 
 ASSETS = (
     "css/style.css",
+    "assets/fonts/fonts.css",
     "js/data.js",
     "js/skills.js",
     "js/craft.js",

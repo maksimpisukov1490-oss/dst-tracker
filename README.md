@@ -1,6 +1,6 @@
 # Компендиум выжившего
 
-![version](https://img.shields.io/badge/version-1.18.11-b8912f)
+![version](https://img.shields.io/badge/version-1.18.12-b8912f)
 
 Фанатский трекер прохождения **Don't Starve Together**: дневник охоты на боссов,
 оформленный как записи в компендиуме из самой игры.
@@ -25,7 +25,7 @@ python3 -m http.server 8000
 
 ## Версии
 
-Текущая версия — **1.18.11**, история изменений — в [CHANGELOG.md](CHANGELOG.md).
+Текущая версия — **1.18.12**, история изменений — в [CHANGELOG.md](CHANGELOG.md).
 
 Версия хранится в `VERSION`. Для сайта она собирается в `js/version.js`:
 
